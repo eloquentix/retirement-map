@@ -10,10 +10,10 @@ It comes with three example households built from reasonable assumptions. Anyone
 
 | File | Opens on |
 |---|---|
-| `index.html` | All three households, with tabs |
+| `all.html` | All three households, with tabs |
 | `one-salary-two-homes.html` | A single high earner, a partner who runs the household, a main home with a mortgage and a paid-off second home |
-| `living-on-royalties.html` | A household living mainly on royalties from creative work, about €1M saved, a paid-off home |
-| `angel-investor.html` | A tech angel writing small start-up cheques, with example sizes of €1M, €5M and €30M |
+| `artist.html` | A household living mainly on royalties from creative work, about €1M saved, a paid-off home |
+| `angels.html` | A tech angel writing small start-up cheques, with example sizes of €1M, €5M and €30M |
 
 Each page is one self-contained HTML file with no build step needed to open it.
 
@@ -34,8 +34,9 @@ Every page also teaches the method:
 
 ## Sharing
 
-- **Online:** <https://eloquentix.github.io/retirement-map/>, with each household also on its own page
-  (`one-salary-two-homes.html`, `living-on-royalties.html`, `angel-investor.html`).
+- **Online:** <https://apps.eloquentix.com/radu/mc/all.html>, with each household also on its own page
+  (`angels.html`, `artist.html`; `one-salary-two-homes.html` is built but not published there yet).
+  Deployed with `./deploy.sh`.
 - **As an attachment:** send the single `.html` file. It opens in any browser, offline too.
 - **Privacy:**
   - Numbers people type are saved only in their own browser (`localStorage`).
@@ -61,9 +62,9 @@ Each household is defined in the `PERSONAS` object in the source:
 ## The model
 
 - **Yearly steps:** flows land at year end. Spending, pensions and rents rise with inflation. Mortgage payments are fixed in euros.
-- **Returns:** each asset type has its own random yearly return, drawn from a log-normal distribution. Asset types move together through a correlation matrix. Savings are rebalanced every year. A fee and tax drag is subtracted from every return.
+- **Returns:** each asset class has its own random yearly return, drawn from a log-normal distribution. Classes move together through a correlation matrix. Savings are rebalanced every year. A fee and tax drag is subtracted from every return.
 
-  | Asset type | Avg return | Yearly swing (1σ) |
+  | Asset class | Avg return | Yearly swing (1σ) |
   |---|---|---|
   | Cash and deposits | 2.0% | 1% |
   | Bonds and guaranteed funds | 3.0% | 5% |
@@ -72,7 +73,9 @@ Each household is defined in the `PERSONAS` object in the source:
   | Single and local stocks | 9.0% | 26% |
   | Property prices | 2.5% | 8% |
 
-  These are nominal euro figures, and all of them can be edited on the page.
+  These are nominal euro figures, and all of them can be edited on the page. The five liquid classes
+  (everything but property) can also be added to or removed from, and the full pairwise correlation
+  between every class is editable too, in the "Markets, inflation and fees" section.
 - **Locked savings:** workplace and private pension plans grow separately and join usable savings at their unlock age. Before that they cannot pay bills.
 - **Property:** homes are not counted as savings. Rents count as income. Selling a property pays its price minus 6% costs and any mortgage left into savings.
 - **Royalties:** the level drifts by the stated yearly change and takes random shocks that persist from year to year.

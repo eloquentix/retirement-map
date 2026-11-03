@@ -1,7 +1,7 @@
 // Builds standalone pages from src/retirement-map.html.
 //   node build.mjs
-// index.html shows all three example households; each of the others opens on one household only,
-// so it can be sent on its own (email attachment, a public link, or a GitHub Pages site).
+// all.html shows all three example households; each of the others opens on one household only,
+// so it can be sent on its own (email attachment or a public link). Deployed via ./deploy.sh.
 // Every page carries a Content-Security-Policy: no network access, and no script except its own (allowed by hash).
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -10,10 +10,10 @@ const SRC = new URL("./src/retirement-map.html", import.meta.url);
 const src = readFileSync(SRC, "utf8");
 
 const pages = [
-  { file: "index.html", only: null, title: "Retirement Map" },
+  { file: "all.html", only: null, title: "Retirement Map" },
   { file: "one-salary-two-homes.html", only: "twohomes", title: "One Salary, Two Homes" },
-  { file: "living-on-royalties.html", only: "royalties", title: "Living on Royalties" },
-  { file: "angel-investor.html", only: "angel", title: "Angel Investor Map" },
+  { file: "artist.html", only: "royalties", title: "Living on Royalties" },
+  { file: "angels.html", only: "angel", title: "Angel Investor Map" },
 ];
 
 const replaceOnce = (s, from, to) => {
