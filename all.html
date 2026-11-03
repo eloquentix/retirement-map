@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-KbqJmgbk3K00cDHxWsBh31q2NuxdqBeI3rMsMzE3t/U='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-ZOqilMRIgByyyM40vN6cFnD4tFaxrxnfmTE1Bl6RFEQ='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Retirement Map</title>
 <style>
 /* Layout: a route map. A metro-style line of life "stations" runs across the top, the household's numbers sit in a left rail, charts on the right, lessons below. */
@@ -756,7 +756,7 @@ indie:{
   story:`<p>You've been independent for years — a PFA or a small SRL, billing clients directly or through a firm you work with. No employer, no HR department enrolling you in anything, no automatic pension contributions. What you have instead has built up on its own: a home with a small mortgage, a crypto wallet or three from a few market cycles, stocks and ETFs bought across a handful of broker apps, some government bonds, cash spread over a few banks. It adds up to a real number, but it's scattered, and <strong>no one has ever looked at it as one picture</strong>.</p>
 <p>Most PFAs and micro-SRLs declare close to the legal minimum for social contributions, which keeps more cash in hand now — and means a thin state pension later. For a household like this, <strong>savings and investments are the retirement plan</strong>, not a supplement to one.</p>`,
   assumptions:[
-    "Billing income through a PFA or small SRL, after tax and social contributions: about €50k a year, rising slowly.",
+    "Billing income through a PFA or small SRL, after tax and social contributions: about €24k a year, rising slowly.",
     "Partner employed on payroll: about €26k a year after tax, with normal pension contributions.",
     "State pension: about €100 a month for you, reflecting years of contributions kept near the legal minimum; about €350 a month for your partner, who was on payroll throughout.",
     "Spending: €34k a year for the household, plus €5k a year for health and care from 80.",
@@ -779,7 +779,7 @@ indie:{
   base:{
     people:{a:{age:42},b:{age:40}},retireAge:65,planTo:95,inflation:4.0,drag:0.6,
     income:[
-      {id:"bill",label:"Billing income through a PFA or micro-SRL, after tax and social contributions",kind:"work",who:"a",amount:50000,from:42,to:ret,growth:1,vol:0},
+      {id:"bill",label:"Billing income through a PFA or micro-SRL, after tax and social contributions",kind:"work",who:"a",amount:24000,from:42,to:ret,growth:1,vol:0},
       {id:"sal",label:"Partner's salary, after tax",kind:"work",who:"b",amount:26000,from:40,to:ret,growth:0.5,vol:0},
       {id:"penA",label:"State pension (you), built on minimal contributions",short:"Your thin pension starts",kind:"pension",who:"a",amount:1200,from:65,to:null,growth:0,vol:0},
       {id:"penB",label:"State pension (partner), paid as an employee",short:"Partner's pension starts",kind:"pension",who:"b",amount:4200,from:65,to:null,growth:0,vol:0}],
