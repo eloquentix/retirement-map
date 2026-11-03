@@ -37,7 +37,7 @@ Every page also teaches the method:
 
 ## Sharing
 
-- **Online:** <https://apps.eloquentix.com/radu/mc/all.html>, with each household also on its own page
+- **Online:** <https://apps.eloquentix.com/mc/all.html>, with each household also on its own page
   (`angels.html`, `artist.html`, `indie.html`, `plan.html`; `homes.html` is built but not published
   there — legacy). Deployed with `./deploy.sh`.
 - **As an attachment:** send the single `.html` file. It opens in any browser, offline too.
