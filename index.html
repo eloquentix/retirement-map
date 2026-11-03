@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-D6S8tSQxi1MStASF4rL/fgc5QhTSOEras5jPepB17jI=' 'sha256-pT7zIWEPwH6hedhBwwK6jrbVZaVIbSYedyoNNcu6e5w='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Retirement Map</title>
+<style>
+/* Layout: a route map. A metro-style line of life "stations" runs across the top, the household's numbers sit in a left rail, charts on the right, lessons below. */
+:root{
+  --bg:#f1f4f5;--surface:#ffffff;--surface-2:#e7edef;--ink:#13262e;--muted:#526770;--faint:#84959c;--line:#d0dade;
+  --route:#2350cf;--data:#0d7c78;--data-soft:rgba(13,124,120,.13);--data-mid:rgba(13,124,120,.28);
+  --good:#1f7d4b;--warn:#9c6300;--bad:#bf3a30;--good-bg:rgba(31,125,75,.10);--warn-bg:rgba(156,99,0,.11);--bad-bg:rgba(191,58,48,.10);
+  --c-cash:#97adb5;--c-bonds:#4f87a0;--c-lcy:#c39a33;--c-world:#0d7c78;--c-local:#3d5ec2;--c-prop:#a8701b;--c-home:#c3cfd3;--c-angel:#b8417f;
+  --f-work:#0d7c78;--f-pension:#4766d1;--f-royalty:#8656c4;--f-rent:#a8701b;--f-other:#5f8530;
+  --f-live:#c4544b;--f-mort:#86467a;--f-save:#7a8a91;--f-angel:#b8417f;
+  --display:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --body:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1519;--surface:#151f24;--surface-2:#1c282e;--ink:#e4ecef;--muted:#9aaab1;--faint:#6f8088;--line:#2a3940;
+  --route:#86a3ff;--data:#3cc2b6;--data-soft:rgba(60,194,182,.13);--data-mid:rgba(60,194,182,.28);
+  --good:#57c98a;--warn:#e2ab45;--bad:#f07067;--good-bg:rgba(87,201,138,.12);--warn-bg:rgba(226,171,69,.13);--bad-bg:rgba(240,112,103,.13);
+  --c-cash:#6f858d;--c-bonds:#6fa4b8;--c-lcy:#d8b660;--c-world:#3cc2b6;--c-local:#86a3ff;--c-prop:#d9a548;--c-home:#33444b;--c-angel:#e07ab3;
+  --f-work:#3cc2b6;--f-pension:#8aa2ff;--f-royalty:#b892ef;--f-rent:#d9a548;--f-other:#a3c26a;
+  --f-live:#ef7d74;--f-mort:#c98ab8;--f-save:#8e9ea5;--f-angel:#e07ab3;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1519;--surface:#151f24;--surface-2:#1c282e;--ink:#e4ecef;--muted:#9aaab1;--faint:#6f8088;--line:#2a3940;
+  --route:#86a3ff;--data:#3cc2b6;--data-soft:rgba(60,194,182,.13);--data-mid:rgba(60,194,182,.28);
+  --good:#57c98a;--warn:#e2ab45;--bad:#f07067;--good-bg:rgba(87,201,138,.12);--warn-bg:rgba(226,171,69,.13);--bad-bg:rgba(240,112,103,.13);
+  --c-cash:#6f858d;--c-bonds:#6fa4b8;--c-lcy:#d8b660;--c-world:#3cc2b6;--c-local:#86a3ff;--c-prop:#d9a548;--c-home:#33444b;--c-angel:#e07ab3;
+  --f-work:#3cc2b6;--f-pension:#8aa2ff;--f-royalty:#b892ef;--f-rent:#d9a548;--f-other:#a3c26a;
+  --f-live:#ef7d74;--f-mort:#c98ab8;--f-save:#8e9ea5;--f-angel:#e07ab3;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:grid;gap:22px}
+.wrap>*,.main>*,.pair>*,.lower>*,.picture>*{min-width:0}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(28px,4.2vw,42px);font-weight:700;line-height:1.08}
+h2{font-size:19px;font-weight:700}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--route);font-weight:500}
+.lede{color:var(--muted);font-size:16.5px;max-width:62ch;margin-top:8px}
+.note{color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--route);outline-offset:2px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between}
+.top>div{min-width:0;flex:1 1 420px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;background:var(--surface-2);padding:5px;border-radius:999px}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:700;font-size:14px}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* picture */
+.picture{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+.story{display:grid;gap:10px;font-size:16px;max-width:66ch}
+.facts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.facts li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:0}
+.facts b{display:block;font-family:var(--mono);font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.facts span{color:var(--muted);font-size:12.5px}
+
+/* route */
+.route-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;align-items:baseline;margin-bottom:6px}
+.scroll-x{overflow-x:auto}
+#timeline{display:block;width:100%;min-width:720px;height:auto}
+#timeline text{font-family:var(--body)}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:4px;align-content:start}
+.kpi .l{font-size:12.5px;color:var(--muted);font-weight:700}
+.kpi .v{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:middle;font-family:var(--body)}
+.pill.good{color:var(--good);background:var(--good-bg)}.pill.warn{color:var(--warn);background:var(--warn-bg)}.pill.bad{color:var(--bad);background:var(--bad-bg)}
+
+/* main */
+.main{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:18px;align-items:start}
+.charts{display:grid;gap:18px;min-width:0}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.card-head{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:5px 11px;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.chartbox{position:relative}
+canvas{display:block;width:100%}
+#fan{height:330px}#surv{height:170px}#flow{height:250px}#angelHist{height:190px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:170px;z-index:2}
+.tip .t{font-weight:700;margin-bottom:3px}
+.tip div{display:flex;justify-content:space-between;gap:14px}
+.tip b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+
+/* inputs */
+.inputs{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+.form-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.link{border:0;background:none;color:var(--route);cursor:pointer;font-weight:700;font-size:13px;padding:0}
+.tierbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:700;font-size:13px}
+.chip.on{border-color:var(--route);color:var(--route);background:var(--surface)}
+details.sec{border-top:1px solid var(--line);padding-block:10px}
+details.sec>summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:15.5px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:"+";color:var(--faint);font-family:var(--mono)}
+details.sec[open]>summary::after{content:"–"}
+.sec-body{display:grid;gap:4px;margin-top:6px}
+.item{display:grid;gap:6px;padding-block:9px;border-top:1px dashed var(--line)}
+.item:first-child{border-top:0}
+.item-label{font-weight:700;font-size:13.5px;line-height:1.35}
+.fields{display:flex;flex-wrap:wrap;gap:8px}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);flex:1 1 92px;min-width:0}
+.fld input,.fld select{width:100%;min-width:0;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:14px;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.fld select{font-family:var(--body);font-size:13px}
+.fld input:focus,.fld select:focus{border-color:var(--route);outline:none}
+.fld input.invalid{border-color:var(--bad)}
+.agechip{display:block;padding:6px 8px;border-radius:8px;background:transparent;border:1px dashed var(--line);font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint{font-size:11.5px;color:var(--faint)}
+.mo{font-family:var(--mono)}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th,.tbl td{padding:4px 6px;text-align:right}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl input{width:64px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:var(--mono);font-size:13px;color:var(--ink)}
+
+/* mix */
+.mixbar{display:flex;height:26px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.mixbar span{display:block;height:100%}
+.mixbar span.locked{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.35) 0 3px,transparent 3px 7px)}
+.mixlist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:5px;font-size:13px}
+.mixlist li{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:8px;align-items:baseline}
+.mixlist i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.mixlist b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.tag{font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px;margin-left:4px;white-space:nowrap}
+
+/* levers */
+.levers{display:grid;gap:8px}
+.lever{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:13.5px}
+.lever .track{position:relative;height:14px;background:var(--surface-2);border-radius:4px}
+.lever .track .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--faint)}
+.lever .track .bar{position:absolute;top:0;bottom:0;border-radius:4px}
+.lever b{font-family:var(--mono);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+
+/* angel */
+.astats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.astats div{background:var(--surface-2);border-radius:10px;padding:8px 10px}
+.astats b{display:block;font-family:var(--mono);font-size:16px;font-weight:500}
+.astats span{font-size:12px;color:var(--muted)}
+
+/* risks + ideas */
+.lower{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px;align-items:start}
+.risks{display:grid;gap:10px;margin-top:12px}
+.risk{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:12px 14px;border-radius:12px;background:var(--surface-2)}
+.risk .lvl{grid-row:span 2;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:999px;align-self:start}
+.risk .lvl.high{color:var(--bad);background:var(--bad-bg)}.risk .lvl.medium{color:var(--warn);background:var(--warn-bg)}.risk .lvl.low{color:var(--good);background:var(--good-bg)}
+.risk p{font-size:14px;color:var(--muted)}
+.ideas{margin:12px 0 0;padding-left:20px;display:grid;gap:8px;font-size:14.5px}
+.assume{margin:10px 0 0;padding-left:18px;display:grid;gap:5px;font-size:13.5px;color:var(--muted)}
+
+/* concepts */
+.concepts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:12px}
+.concept{border-top:3px solid var(--route);background:var(--surface);border-radius:0 0 12px 12px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.concept p{font-size:14px;color:var(--muted)}
+footer{font-size:13px;color:var(--muted);display:grid;gap:8px;max-width:90ch}
+footer b{color:var(--ink)}
+
+/* start here */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:12px}
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:start}
+.step .n{grid-row:span 2;width:30px;height:30px;border-radius:50%;border:3px solid var(--route);display:grid;place-items:center;font-family:var(--mono);font-weight:500;font-size:14px;color:var(--route);background:var(--surface)}
+.step p{font-size:14px;color:var(--muted)}
+.why{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:15px;max-width:92ch}
+/* plain-words explainer */
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 32px;margin-top:14px}
+.faq>div{display:grid;gap:6px;align-content:start}
+.faq p{font-size:14.5px;color:var(--muted);max-width:68ch}
+details.how{padding:0}
+details.how>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 18px;border-radius:var(--r)}
+details.how>summary::-webkit-details-marker{display:none}
+details.how>summary:hover .how-toggle{border-color:var(--route)}
+.how-title{display:grid;gap:2px;min-width:0}
+.how-title .h2{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.01em}
+.how-toggle{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:var(--route);font-family:var(--mono);font-size:18px;line-height:1}
+.how-toggle::before{content:"+"}
+details.how[open] .how-toggle::before{content:"–"}
+details.how .faq{padding:0 18px 18px;margin-top:0;border-top:1px dashed var(--line);padding-top:16px}
+/* ask an assistant */
+.ask{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}
+.qlist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.qlist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:14px}
+.copy{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--route);white-space:nowrap}
+.copy:hover{border-color:var(--route)}
+#planText{display:block;width:100%;min-height:280px;resize:vertical;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+.tips{margin:8px 0 0;padding-left:18px;display:grid;gap:5px;font-size:13.5px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--route);color:var(--route);background:var(--surface)}
+@media (max-width:1020px){.main{grid-template-columns:minmax(0,1fr)}.inputs{position:static;max-height:none;order:2}.lower{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:820px){.steps,.faq,.ask{grid-template-columns:minmax(0,1fr)}.picture{grid-template-columns:minmax(0,1fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pair{grid-template-columns:minmax(0,1fr)}.concepts{grid-template-columns:minmax(0,1fr)}.astats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:460px){.wrap{padding-inline:16px}.kpis{grid-template-columns:minmax(0,1fr)}.facts{grid-template-columns:minmax(0,1fr)}.lever{grid-template-columns:minmax(0,1fr) 56px}.lever .track{grid-column:1/-1;grid-row:2}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <p class="eyebrow">Retirement Map</p>
+    <h1 id="h1">Retirement Map</h1>
+    <p class="lede" id="lede"></p>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Example households"></nav>
+</header>
+
+<details class="card how" id="how">
+  <summary><span class="how-title"><span class="h2" id="howH">How this works, in plain words</span><span class="note">What a Monte Carlo simulation is, why do this exercise, and how to read the results.</span></span><span class="how-toggle" aria-hidden="true"></span></summary>
+  <div class="faq">
+    <div><h3>What is a Monte Carlo simulation?</h3><p>A way to explore an uncertain future by playing it out many times. The name comes from the casino in Monaco. Like a roll of the dice, each run draws a random but realistic sequence of market years, some good and some bad, and applies your income and spending to them. This page runs 2,000 of these futures for your numbers, then counts how often the money lasts.</p></div>
+    <div><h3>Why not just use an average return?</h3><p>Markets never deliver the average smoothly. Two people with the same average return can end up in very different places if one meets the bad years right after stopping work. One average hides that; thousands of futures show it. Press “Show 5 sample futures” on the savings chart to see individual paths.</p></div>
+    <div><h3>How do I read the savings chart?</h3><p>The solid line is the typical future: half the futures end above it and half below. The darker band holds the middle half of futures, the light band 8 in 10. The bottom of the light band is a bad-luck case, though not the worst one.</p></div>
+    <div><h3>What does a “90% chance” mean?</h3><p>In 9 of 10 simulated futures the savings never ran out before the end of the plan. It is not a promise. The result is only as good as the assumptions, and real people adapt, for example by spending less after a bad year, which the model does not do. Many planners aim for roughly 80–90% and then review the plan every year.</p></div>
+    <div><h3>Which numbers matter most?</h3><p>Usually how much you spend and when you stop working. How the savings are invested matters too, and market returns matter a lot, but you can't choose them. “What moves the needle” tests each change on the same 2,000 futures, so the differences come from the change, not from luck.</p></div>
+    <div><h3>What does the model leave out?</h3><p>Detailed tax rules, spending cuts after bad years, health shocks, inheritances, separation, and the chance that the future is harsher than history. Use it to compare choices and to prepare good questions, not to predict an exact number.</p></div>
+  </div>
+</details>
+
+<section class="picture" aria-label="The financial picture">
+  <div class="story" id="story"></div>
+  <ul class="facts" id="facts"></ul>
+</section>
+
+<section class="card" aria-labelledby="startH">
+  <h2 id="startH">Start here</h2>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><h3>Read the picture</h3><p>The story, the route and the four numbers show how this household fares across 2,000 possible futures.</p></div>
+    <div class="step"><span class="n">2</span><h3>Put in your own numbers</h3><p>Change any figure under “Your numbers”. Everything updates as you type, and nothing leaves your browser.</p></div>
+    <div class="step"><span class="n">3</span><h3>Find your levers</h3><p>“What moves the needle” shows which decisions matter most. Then take the questions at the bottom of the page to an adviser or an AI assistant.</p></div>
+  </div>
+  <p class="why"><strong>Why do this at all?</strong> Retirement choices are large and hard to undo: when to stop work, how much to spend, which home to keep, how much risk to carry. A single forecast hides how wrong it can be. Seeing the range of outcomes, and which choices move it, turns a vague worry into a few concrete decisions you can talk through with your partner, an adviser or an AI assistant.</p>
+</section>
+
+<section class="card" aria-labelledby="routeH">
+  <div class="route-head"><h2 id="routeH">The route</h2><p class="note" id="routeNote"></p></div>
+  <div class="scroll-x"><svg id="timeline" viewBox="0 0 1000 170" role="img" aria-label="Timeline of life events"></svg></div>
+</section>
+
+<section class="kpis" id="kpis" aria-label="Headline results">
+  <div class="kpi"><span class="l">Chance the savings last</span><span class="v" id="k1">—</span><span class="s" id="k1s"></span></div>
+  <div class="kpi"><span class="l" id="k2l">Savings when you stop work</span><span class="v" id="k2">—</span><span class="s" id="k2s"></span></div>
+  <div class="kpi"><span class="l">Spending that holds up</span><span class="v" id="k3">—</span><span class="s" id="k3s"></span></div>
+  <div class="kpi"><span class="l">In the worst 1 in 10 futures</span><span class="v" id="k4">—</span><span class="s" id="k4s"></span></div>
+</section>
+
+<div class="main">
+  <aside class="inputs card" id="form" aria-label="Your numbers"></aside>
+  <div class="charts">
+    <section class="card">
+      <div class="card-head"><h2>Savings over time</h2>
+        <div class="seg" id="units"><button type="button" data-u="real" aria-pressed="true">Today's €</button><button type="button" data-u="nom" aria-pressed="false">Future €</button></div></div>
+      <p class="note" id="fanNote"></p>
+      <div class="chartbox"><canvas id="fan" aria-label="Range of savings by age"></canvas><div class="tip" id="tip" hidden></div></div>
+      <div class="legend" style="align-items:center"><span><i style="background:var(--data-soft)"></i>8 in 10 futures</span><span><i style="background:var(--data-mid)"></i>Middle half</span><span><i style="background:var(--data)"></i>Typical path</span><span id="lgSamples" hidden><i style="background:var(--ink);height:2px;vertical-align:3px"></i>Sample futures</span><button type="button" class="chip" id="samples" aria-pressed="false" style="margin-left:auto">Show 5 sample futures</button></div>
+    </section>
+    <div class="pair">
+      <section class="card">
+        <div class="card-head"><h2>Still funded</h2><span class="note">share of futures</span></div>
+        <div class="chartbox"><canvas id="surv" aria-label="Share of futures where savings still last, by age"></canvas></div>
+        <p class="note" id="survNote" style="margin-top:8px"></p>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>Where the money sits</h2><span class="note" id="mixTotal"></span></div>
+        <div class="mixbar" id="mixbar"></div>
+        <ul class="mixlist" id="mixlist"></ul>
+        <p class="note" id="mixNote" style="margin-top:10px"></p>
+      </section>
+    </div>
+    <section class="card">
+      <div class="card-head"><h2>Money in, money out</h2><span class="note">typical year, today's €</span></div>
+      <p class="note">Bars above the line are income; bars below are spending. Where spending is taller, savings fill the gap.</p>
+      <div class="chartbox"><canvas id="flow" aria-label="Yearly income and spending"></canvas><div class="tip" id="tip2" hidden></div></div>
+      <div class="legend" id="flowLegend"></div>
+    </section>
+    <section class="card" id="angelCard" hidden>
+      <div class="card-head"><h2>The angel portfolio</h2><span class="note">what all cheques return, as a multiple of what went in</span></div>
+      <div class="chartbox"><canvas id="angelHist" aria-label="Distribution of angel portfolio multiples"></canvas></div>
+      <div class="astats" id="astats"></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>What moves the needle</h2><span class="note">change in the chance the savings last</span></div>
+      <div class="levers" id="levers"></div>
+    </section>
+  </div>
+</div>
+
+<div class="lower">
+  <section class="card"><h2>Risks in this picture</h2><div class="risks" id="risks"></div></section>
+  <section class="card"><h2>Ideas to look into</h2><ol class="ideas" id="ideas"></ol>
+    <h3 style="margin-top:18px">What we assumed</h3><ul class="assume" id="assume"></ul></section>
+</div>
+
+<section aria-labelledby="conH">
+  <h2 id="conH">Six ideas that matter for any retirement</h2>
+  <div class="concepts">
+    <div class="concept"><h3>Think in today's euros</h3><p>Every amount here is shown in today's money unless you switch to future euros. At 2.5% inflation, what costs €100 today costs about €210 in 30 years.</p></div>
+    <div class="concept"><h3>The gap is the job of your savings</h3><p>Spending minus pensions, rents and other income is the yearly gap. Divide it by your savings to get a withdrawal rate. Starting around 3% to 3.5% has held up through most of history for long retirements; above 5%, the outcome depends mostly on luck.</p></div>
+    <div class="concept"><h3>Bad years early hurt most</h3><p>A crash in the first years after you stop working does more damage than the same crash later, because you sell investments at low prices to pay the bills. A cash buffer of two or three years softens this.</p></div>
+    <div class="concept"><h3>Fees and taxes compound</h3><p>Losing 1% a year to fees and taxes leaves you with about a quarter less after 30 years. It is one of the few things you fully control.</p></div>
+    <div class="concept"><h3>Safety has a price</h3><p>Deposits and guaranteed funds rarely beat inflation by much. Stocks swing, sometimes by a third in a year, but over decades they have grown faster. The mix is a choice between smoother and bigger.</p></div>
+    <div class="concept"><h3>Not all wealth is spendable</h3><p>Homes, locked pension plans and start-up stakes count in net worth but cannot pay this month's bills. The simulation counts only money you can use, unless you choose to sell.</p></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="askH">
+  <h2 id="askH">Questions to ask an AI assistant</h2>
+  <p class="note" style="max-width:82ch;margin-top:6px">AI assistants are good at explaining terms, checking assumptions and walking through what-ifs step by step. Copy a question, or copy your whole plan and paste it in. Replace anything in [brackets] with your own details.</p>
+  <div class="ask">
+    <div>
+      <h3>For a household like this one</h3>
+      <ul class="qlist" id="askPersona"></ul>
+      <h3 style="margin-top:18px">For anyone planning retirement</h3>
+      <ul class="qlist" id="askGeneral"></ul>
+    </div>
+    <div>
+      <div class="card-head" style="margin-bottom:6px"><h3>Your plan, ready to paste</h3><button type="button" class="copy" id="copyPlan">Copy plan</button></div>
+      <textarea id="planText" readonly aria-label="Your plan as text for an AI assistant"></textarea>
+      <h3 style="margin-top:16px">Getting good answers</h3>
+      <ul class="tips">
+        <li>Say which country you live in and which accounts you hold; the rules differ a lot.</li>
+        <li>Give amounts per year, after tax, in today's money, the way this page does.</li>
+        <li>Ask the assistant to list its assumptions, show its working and say what it is unsure about.</li>
+        <li>Check tax and legal points with a qualified professional before acting.</li>
+        <li>Never paste account numbers, ID numbers or passwords.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><b>Method.</b> 2,000 futures, one year at a time. Each year draws random returns for every kind of investment (moving together the way markets tend to), adds income, pays spending and records whether money is left. Savings are rebalanced yearly; royalties drift and jump at random; each angel cheque gets a random outcome and exit year; inflation is fixed at your chosen rate.</p>
+  <p><b>Example numbers.</b> The households are illustrations built from reasonable assumptions, not anyone's real accounts. Type your own figures; they stay in this browser only.</p>
+  <p><b>Not advice.</b> This is an educational tool. It is not financial, tax or legal advice, and tax rules change often.</p>
+</footer>
+</div>
+
+<script id="engine">
+"use strict";
+// ===== Simulation engine (pure functions, no DOM) =====
+const CLASSES={
+  cash:{name:"Cash and deposits",mu:2.0,sd:1.0},
+  bonds:{name:"Bonds and guaranteed funds",mu:3.0,sd:5.0},
+  lcy:{name:"Local-currency bonds and deposits",mu:4.5,sd:8.0},
+  world:{name:"Global stock funds",mu:8.0,sd:17.0},
+  local:{name:"Single and local stocks",mu:9.0,sd:26.0},
+  prop:{name:"Property prices",mu:2.5,sd:8.0}
+};
+const CK=["cash","bonds","lcy","world","local","prop"];
+const LIQUID_CLASSES=["cash","bonds","lcy","world","local"];
+const CORR=[
+  [1,.10,.10,0,0,0],
+  [.10,1,.40,.10,.05,.10],
+  [.10,.40,1,.20,.30,.20],
+  [0,.10,.20,1,.60,.30],
+  [0,.05,.30,.60,1,.35],
+  [0,.10,.20,.30,.35,1]];
+const ANGEL_PROFILES={
+  novice:{name:"Typical small-ticket angel",out:[[0,.60],[.5,.12],[1,.10],[3,.11],[10,.05],[30,.02]],lag:[3,10]},
+  seasoned:{name:"Selective angel with follow-ons",out:[[0,.50],[.5,.12],[1,.12],[3,.14],[10,.09],[30,.03]],lag:[3,10]}
+};
+const SALE_COST=0.06, SEED=20261103;
+
+function chol(A){const n=A.length,L=A.map(()=>new Array(n).fill(0));
+  for(let i=0;i<n;i++)for(let j=0;j<=i;j++){let s=A[i][j];for(let k=0;k<j;k++)s-=L[i][k]*L[j][k];L[i][j]=i===j?Math.sqrt(Math.max(s,1e-12)):s/L[j][j];}return L;}
+const CHOL=chol(CORR);
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function normals(r){let spare=null;return()=>{if(spare!==null){const s=spare;spare=null;return s;}let u=0;while(u<1e-12)u=r();const v=r(),m=Math.sqrt(-2*Math.log(u));spare=m*Math.sin(2*Math.PI*v);return m*Math.cos(2*Math.PI*v);};}
+function defaultMarket(){const m={};for(const k of CK)m[k]={mu:CLASSES[k].mu,sd:CLASSES[k].sd};return m;}
+const ageVal=(v,m)=>v==="ret"?+m.retireAge:+v;
+
+// Turn the editable household model into year-by-year arrays. Year t runs from age a0+t-1 to a0+t; flows land at year end.
+function resolve(m){
+  const a0=+m.people.a.age,b0=+m.people.b.age;
+  const H=Math.max(1,Math.min(80,Math.round(+m.planTo-Math.min(a0,b0))));
+  const i=(+m.inflation||0)/100,infl=new Float64Array(H+1);for(let t=0;t<=H;t++)infl[t]=Math.pow(1+i,t);
+  const ageAt=(who,t)=>(who==="b"?b0:a0)+t-1;
+  const active=(who,from,to,t)=>{const a=ageAt(who,t),f=ageVal(from,m),u=to==null?Infinity:ageVal(to,m);return a>=f&&a<u;};
+  const Z=()=>new Float64Array(H+1);
+  const inFixed=Z(),spend=Z(),outFixed=Z(),rent=Z();
+  const det={work:Z(),pension:Z(),royalty:Z(),other:Z(),rent,live:spend,mortgage:Z(),save:Z(),angel:Z()};
+  const roy=[];
+  for(const s of m.income){
+    const amt=+s.amount||0;if(amt<=0)continue;
+    const g=(+s.growth||0)/100,kind=det[s.kind]?s.kind:"other";
+    if(s.kind==="royalty"&&(+s.vol||0)>0){
+      const base=Z();for(let t=1;t<=H;t++)if(active(s.who,s.from,s.to,t))base[t]=amt*infl[t];
+      roy.push({base,g:Math.log(1+g),sd:(+s.vol)/100});
+      for(let t=1;t<=H;t++)det.royalty[t]+=base[t]*Math.pow(1+g,t-1);
+      continue;}
+    for(let t=1;t<=H;t++)if(active(s.who,s.from,s.to,t)){const v=amt*infl[t]*Math.pow(1+g,t-1);inFixed[t]+=v;det[kind][t]+=v;}
+  }
+  for(const s of m.spending){const amt=+s.amount||0;if(amt<=0)continue;for(let t=1;t<=H;t++)if(active("a",s.from,s.to,t))spend[t]+=amt*infl[t];}
+  const liquid=[],pots=[];
+  for(const b of m.buckets){
+    const amt=Math.max(0,+b.amount||0);
+    if(b.locked!=null&&b.locked!==""){
+      const ut=ageVal(b.locked,m)-a0+1;
+      if(ut<=1){liquid.push({cls:b.cls,amount:amt});continue;}
+      const contrib=Z(),you=+b.you||0,emp=+b.employer||0;
+      for(let t=1;t<=H;t++)if(t<ut&&(b.until==null||ageAt("a",t)<ageVal(b.until,m))){contrib[t]=(you+emp)*infl[t];outFixed[t]+=you*infl[t];det.save[t]+=you*infl[t];}
+      pots.push({v0:amt,ci:Math.max(0,CK.indexOf(b.cls)),ut,contrib});
+    }else liquid.push({cls:b.cls,amount:amt});
+  }
+  let liquid0=0;for(const b of liquid)liquid0+=b.amount;
+  const w=new Float64Array(6);
+  if(liquid0>0){for(const b of liquid){const c=CK.indexOf(b.cls);w[c>=0&&c<5?c:0]+=b.amount/liquid0;}}else w[0]=1;
+  const props=[];
+  for(const p of m.property){
+    const sa=p.sellAt==null||p.sellAt===""?Infinity:+p.sellAt;
+    let saleT=Infinity;if(isFinite(sa))saleT=Math.max(1,sa-a0+1);if(saleT>H)saleT=Infinity;
+    const pmt=+p.mortgage||0,mEnd=+p.mortgageEnd||0;
+    for(let t=1;t<=H&&t<saleT;t++){
+      if(pmt>0&&ageAt("a",t)<mEnd){outFixed[t]+=pmt;det.mortgage[t]+=pmt;}
+      if((+p.rent||0)>0)rent[t]+=p.rent*infl[t];
+    }
+    let bal=0;
+    if(isFinite(saleT)&&pmt>0){const n=mEnd-ageAt("a",saleT);if(n>0){const r=(+p.rate||0)/100;bal=r>0?pmt*(1-Math.pow(1+r,-n))/r:pmt*n;}}
+    props.push({v0:+p.value||0,saleT,bal,home:!!p.home});
+  }
+  if(m.angel&&(+m.angel.perYear||0)>0){const yrs=Math.min(+m.angel.years||0,H);for(let y=1;y<=yrs;y++){const v=m.angel.perYear*m.angel.ticket*infl[y];outFixed[y]+=v;det.angel[y]+=v;}}
+  return {a0,b0,H,infl,inFixed,spend,outFixed,rent,roy,pots,props,w,liquid0,drag:(+m.drag||0)/100,riskyShare:1-w[0],det};
+}
+
+// Correlated yearly returns for every asset class, plus royalty shocks. Fixed seed: same futures every run.
+function makeDraws(plan,P,market){
+  const H=plan.H,n=6,rc=new Float64Array(P*H*n),ms=new Float64Array(n),ss=new Float64Array(n);
+  CK.forEach((k,c)=>{const mu=market[k].mu/100,sd=Math.max(0,market[k].sd/100),s2=Math.log(1+sd*sd/((1+mu)*(1+mu)));ss[c]=Math.sqrt(s2);ms[c]=Math.log(1+mu)-s2/2;});
+  const nr=normals(rng(SEED)),e=new Float64Array(n);
+  for(let p=0;p<P;p++)for(let t=0;t<H;t++){
+    for(let c=0;c<n;c++)e[c]=nr();
+    const o=(p*H+t)*n;
+    for(let c=0;c<n;c++){let z=0;for(let k=0;k<=c;k++)z+=CHOL[c][k]*e[k];rc[o+c]=Math.exp(ms[c]+ss[c]*z)-1;}
+  }
+  const rz=plan.roy.map((_,j)=>{const g=normals(rng(SEED+101+j)),a=new Float64Array(P*H);for(let x=0;x<a.length;x++)a[x]=g();return a;});
+  return {rc,rz,P};
+}
+
+// Each cheque gets a random multiple and exit year. Each future has its own seed, so the first N futures never change with P.
+function angelPlan(m,plan,P){
+  const H=plan.H,proc=new Float64Array(P*H),mult=new Float64Array(P),big=new Uint8Array(P);
+  const a=m.angel;if(!a)return {on:false,proc,mult,big,invested:0,deals:0};
+  const prof=ANGEL_PROFILES[a.profile]||ANGEL_PROFILES.novice;
+  const cum=[];let s=0;for(const [x,pr] of prof.out){s+=pr;cum.push([x,s]);}
+  const draw=r=>{const u=r()*s;for(const [x,c] of cum)if(u<c)return x;return cum[cum.length-1][0];};
+  const count=Math.max(0,Math.round(+a.count||0)),existing=+a.existing||0,ec=count>0?existing/count:0;
+  const per=Math.max(0,Math.round(+a.perYear||0)),yrs=Math.min(Math.max(0,Math.round(+a.years||0)),H),lo=prof.lag[0],hi=prof.lag[1];
+  let invested=existing;for(let y=1;y<=yrs;y++)invested+=per*(+a.ticket||0)*plan.infl[y];
+  for(let p=0;p<P;p++){
+    const r=rng((SEED^Math.imul(p+1,2654435761))>>>0);let ret=0;
+    for(let k=0;k<count;k++){const x=draw(r),lag=1+Math.floor(r()*8),v=x*ec;ret+=v;if(x>=10)big[p]=1;if(lag<=H)proc[p*H+lag-1]+=v;}
+    for(let y=1;y<=yrs;y++){const cost=(+a.ticket||0)*plan.infl[y];
+      for(let k=0;k<per;k++){const x=draw(r),lag=lo+Math.floor(r()*(hi-lo+1)),v=x*cost;ret+=v;if(x>=10)big[p]=1;const t=y+lag;if(t<=H)proc[p*H+t-1]+=v;}}
+    mult[p]=invested>0?ret/invested:0;
+  }
+  return {on:true,proc,mult,big,invested,deals:count+per*yrs};
+}
+
+// Play the futures forward. k scales the spending items; muShift lowers every risky return by that many points.
+function project(plan,draws,ang,o){
+  const P=o.P,k=o.k==null?1:o.k,ms=(o.muShift||0)/100,H=plan.H,n=6,rc=draws.rc,w=plan.w,drag=plan.drag,risky=plan.riskyShare;
+  const pots=plan.pots,props=plan.props,roy=plan.roy,np=pots.length,nq=props.length,nr=roy.length;
+  const pv=new Float64Array(np),merged=new Uint8Array(np),vv=new Float64Array(nq),lv=new Float64Array(nr);
+  const dep=new Float64Array(P),inv=o.record?new Float64Array(P*(H+1)):null;let ok=0;
+  for(let p=0;p<P;p++){
+    let L=plan.liquid0,failed=false;dep[p]=Infinity;
+    for(let j=0;j<np;j++){pv[j]=pots[j].v0;merged[j]=0;}
+    for(let j=0;j<nq;j++)vv[j]=props[j].v0;
+    lv.fill(1);
+    if(inv){let s=L;for(let j=0;j<np;j++)s+=pv[j];inv[p*(H+1)]=s;}
+    for(let t=1;t<=H;t++){
+      const off=(p*H+t-1)*n;
+      for(let j=0;j<np;j++)if(!merged[j]&&t>=pots[j].ut){L+=pv[j];pv[j]=0;merged[j]=1;}
+      let rl=0;for(let c=0;c<5;c++)rl+=w[c]*rc[off+c];
+      L*=1+rl-drag-ms*risky;
+      for(let j=0;j<np;j++)if(!merged[j]){const ci=pots[j].ci;pv[j]=pv[j]*(1+rc[off+ci]-drag-(ci>0?ms:0))+pots[j].contrib[t];}
+      let flow=plan.inFixed[t]+plan.rent[t]-k*plan.spend[t]-plan.outFixed[t]+ang.proc[p*H+t-1];
+      for(let s=0;s<nr;s++){const R=roy[s];if(t>1)lv[s]*=Math.exp(R.g+R.sd*draws.rz[s][p*H+t-1]);flow+=R.base[t]*lv[s];}
+      for(let j=0;j<nq;j++){const pr=props[j];if(t<pr.saleT)vv[j]*=1+rc[off+5];else if(t===pr.saleT){vv[j]*=1+rc[off+5];flow+=vv[j]*(1-SALE_COST)-pr.bal;vv[j]=0;}}
+      L+=flow;
+      if(L<0){if(!failed){failed=true;dep[p]=plan.a0+t-1;}L=0;}
+      if(inv){let s=L;for(let j=0;j<np;j++)if(!merged[j])s+=pv[j];inv[p*(H+1)+t]=s;}
+    }
+    if(!failed)ok++;
+  }
+  return {success:ok/P,dep,inv};
+}
+
+// Largest multiple of planned spending that still lasts in `target` of futures.
+function sustainable(plan,draws,ang,P,target){
+  let total=0;for(let t=1;t<=plan.H;t++)total+=plan.spend[t];
+  if(total<=0)return NaN;
+  const f=k=>project(plan,draws,ang,{P,k}).success;
+  if(f(0)<target)return 0;
+  let lo=0,hi=1;
+  if(f(1)>=target){lo=1;hi=2;while(f(hi)>=target&&hi<64){lo=hi;hi*=2;}if(hi>=64&&f(hi)>=target)return hi;}
+  for(let it=0;it<12;it++){const mid=(lo+hi)/2;if(f(mid)>=target)lo=mid;else hi=mid;}
+  return lo;
+}
+
+function qAt(sorted,q){const n=sorted.length,x=(n-1)*q,lo=Math.floor(x),hi=Math.ceil(x);return sorted[lo]+(sorted[hi]-sorted[lo])*(x-lo);}
+function bands(inv,P,H,infl,real){
+  const qs=[.1,.25,.5,.75,.9],out=qs.map(()=>new Float64Array(H+1)),col=new Float64Array(P);
+  for(let t=0;t<=H;t++){const d=real?infl[t]:1;for(let p=0;p<P;p++)col[p]=inv[p*(H+1)+t]/d;col.sort();qs.forEach((q,j)=>{out[j][t]=qAt(col,q);});}
+  return out;
+}
+</script>
+
+<script id="ui">
+(()=>{
+"use strict";
+const ONLY = null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+function eur(v){if(!isFinite(v))return "—";const a=Math.abs(v),s=v<0?"−":"";
+  if(a>=1e8)return s+"€"+Math.round(a/1e6)+"M";
+  if(a>=1e6)return s+"€"+(a/1e6).toFixed(1).replace(/\.0$/,"")+"M";
+  if(a>=1e4)return s+"€"+Math.round(a/1e3)+"k";
+  if(a>=1e3)return s+"€"+(a/1e3).toFixed(1).replace(/\.0$/,"")+"k";
+  return s+"€"+Math.round(a);}
+const eurFull=v=>"€"+Math.round(v).toLocaleString("en-GB");
+const pct=p=>(p>=.995&&p<1?">99":p<=.005&&p>0?"<1":Math.round(p*100))+"%";
+const tok=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ===== Example households =====
+const ret="ret";
+const PERSONAS={
+twohomes:{
+  tab:"One salary, two homes",
+  title:"One salary, two homes",
+  lede:"A single high earner, a partner who runs the household, a main home with a mortgage and a second home that is paid off.",
+  story:`<p>One partner earns a <strong>senior salary</strong>; the other runs the household. The family keeps a <strong>main home with a mortgage</strong> and a <strong>second home that is paid off</strong>, and still pays for the children's studies.</p>
+<p>Payroll charges and income tax take a large share of the salary, so the years until retirement are the saving window. After that, a pension and the savings have to keep two homes running for thirty years or more.</p>`,
+  assumptions:[
+    "Net pay: €155k a year after payroll charges and income tax, rising slightly faster than prices.",
+    "Pension: €42k a year after charges from 64. This is a rough figure for a long, well-paid career; an official projection from your pension service will be more accurate.",
+    "Spending: €84k a year for the family and both homes, plus €12k for the children's studies until 57; €72k a year once work stops.",
+    "Mortgage: €3,150 a month until 65. Homes are not counted as savings unless you choose to sell one.",
+    "Savings of about €445k across cash accounts, a guaranteed fund, stock funds, employer shares, a small account in another currency and a locked workplace retirement plan. Prices rise 2.5% a year."],
+  risks:[
+    {lvl:"high",t:"One income carries everything",p:"If the salary stops early through redundancy, illness or death, saving stops and the mortgage still runs. The “Salary stops at 55” bar shows how much this matters (it assumes no other work and no unemployment benefit). Check disability and life cover against the mortgage and the children's years."},
+    {lvl:"medium",t:"Most of the wealth is in the two homes",p:"About €1.18M sits in property against roughly €445k of savings. Homes don't pay bills. Choosing which home to keep after work is likely the biggest decision in this plan."},
+    {lvl:"medium",t:"The partner at home has little pension of their own",p:"If the earner dies or the couple separates, the partner at home depends on survivor pension rules, which come with conditions and usually pay only part of the pension."},
+    {lvl:"medium",t:"Pension rules change",p:"Several European countries have raised pension ages in recent years. Treat the pension figure as a placeholder until you have an official projection."},
+    {lvl:"low",t:"Employer shares in the company plan",p:"Holding your employer's shares ties savings to the same company that pays your salary."},
+    {lvl:"low",t:"A second home abroad brings a second currency",p:"If the second home is in another country, part of the spending is in another currency, with its own inflation."}],
+  ideas:[
+    "Ask your pension service for an official projection and put it in the pension line.",
+    "Use tax-advantaged retirement plans while you earn. In many countries contributions reduce taxable income, and the money stays invested until retirement.",
+    "Decide early which home you'll keep. Try “sell at age” on each home and watch the chance of success change.",
+    "Keep six to twelve months of spending in cash while the mortgage is running.",
+    "Look at the stock share of your savings. Cash accounts and guaranteed funds protect capital but barely beat inflation over thirty years."],
+  levers:["retireLater","retireEarlier","incomeStops55","spendLess","sellMain","sellSecond","moreStocks","marketsWeaker","lowerFees"],
+  base:{
+    people:{a:{age:50},b:{age:50}},retireAge:64,planTo:95,inflation:2.5,drag:0.7,
+    income:[
+      {id:"sal",label:"Salary after payroll charges and income tax",kind:"work",who:"a",amount:155000,from:50,to:ret,growth:0.5,vol:0},
+      {id:"penA",label:"State and workplace pension, after charges",short:"Pension starts",kind:"pension",who:"a",amount:42000,from:ret,to:null,growth:0,vol:0},
+      {id:"penB",label:"Partner's pension, if any",short:"Partner's pension",kind:"pension",who:"b",amount:0,from:64,to:null,growth:0,vol:0}],
+    spending:[
+      {id:"live",label:"Family and both homes (without the mortgage)",amount:84000,from:50,to:ret},
+      {id:"liveR",label:"Household after work stops",amount:72000,from:ret,to:null},
+      {id:"kids",label:"Children's studies",short:"Studies paid",amount:12000,from:50,to:57},
+      {id:"care",label:"Health and care later in life",short:"Care costs begin",amount:6000,from:80,to:null}],
+    buckets:[
+      {id:"cash",label:"Cash savings and current accounts",cls:"cash",amount:45000},
+      {id:"safe",label:"Guaranteed fund or bonds",cls:"bonds",amount:120000},
+      {id:"etf",label:"Stock funds",cls:"world",amount:140000},
+      {id:"esp",label:"Employer share plan",cls:"local",amount:40000},
+      {id:"fx",label:"Account in another currency",cls:"lcy",amount:20000},
+      {id:"wrp",label:"Workplace retirement plan",short:"Retirement plan opens",cls:"world",amount:80000,locked:ret,you:4000,employer:3000,until:ret}],
+    property:[
+      {id:"main",label:"Main home (with mortgage)",short:"Main home",value:950000,home:true,rent:0,mortgage:37800,mortgageEnd:65,rate:3.2,sellAt:null},
+      {id:"second",label:"Second home (paid off)",short:"Second home",value:230000,home:true,rent:0,mortgage:0,mortgageEnd:0,rate:0,sellAt:null}],
+    angel:null}
+},
+royalties:{
+  tab:"Living on royalties",
+  title:"Living on royalties",
+  lede:"Royalties from creative work as the main income, about €1M saved, and a home that is paid off.",
+  story:`<p>Most of this household's income comes from <strong>royalties</strong> on creative work, such as a music catalogue: streaming, broadcast, licensing and public performance. One partner earns; the other has little income of their own. The home is <strong>paid off</strong>, and savings of about <strong>€1 million</strong> sit mostly in deposits and government bonds.</p>
+<p>Royalties are uneven, and they tend to fade as a catalogue ages unless new work or a licensing deal lifts them. State pensions for the self-employed are often small, so the savings and the catalogue together have to last until the younger partner reaches 95.</p>`,
+  assumptions:[
+    "Royalties: €48k a year after tax today, typically falling 3% a year after inflation, with swings of about 25% from one year to the next.",
+    "Live work, teaching and commissions: €12k a year until 67.",
+    "State pensions: about €350 a month for the earner and €250 a month for the partner from 65.",
+    "Spending: €40k a year, plus €4k a year for health and care from 78. The home is paid off.",
+    "Savings of €1M: €280k in euro deposits, €420k in local-currency government bonds and savings, €150k in locally listed shares and €150k in global stock funds.",
+    "Prices rise 3% a year."],
+  risks:[
+    {lvl:"high",t:"Royalties fade, and they are uneven",p:"Most catalogues earn less each year after their peak. One work can carry most of the income, and changes in streaming payouts hit every creator at once. Try “Royalties halve” below."},
+    {lvl:"medium",t:"Much of the money sits in deposits and local bonds",p:"They feel safe, but after inflation they grow slowly, and savings outside the euro carry currency risk."},
+    {lvl:"medium",t:"Small state pensions",p:"Irregular contributions while self-employed usually mean a small pension. The plan relies on savings and royalties instead."},
+    {lvl:"medium",t:"A long horizon",p:"The younger partner has little income of their own, so the money has to last until the earner would be 98."},
+    {lvl:"low",t:"Everything in one economy",p:"Home, deposits, local bonds and local shares all depend on one country's economy."}],
+  ideas:[
+    "Check five years of statements from your collecting societies and distributors, then set the royalty change and swings from what you actually see.",
+    "Keep two to three years of spending in safe money, so a weak royalty year never forces a sale of shares at a low point.",
+    "Move part of the local-currency bonds into global stock funds over a few years, so the money grows faster than prices.",
+    "Make sure every work is registered with the collecting societies; unregistered works earn nothing.",
+    "Plan who inherits the catalogue. In the EU, copyright lasts 70 years after the author's death, so royalties can keep supporting the family."],
+  levers:["royaltiesHalve","royaltiesFlat","stopGigs60","spendLess","moreStocks","marketsWeaker","lowerFees"],
+  base:{
+    people:{a:{age:52},b:{age:49}},retireAge:67,planTo:95,inflation:3.0,drag:0.4,
+    income:[
+      {id:"roy",label:"Royalties: streaming, broadcast, licensing, performance (after tax)",kind:"royalty",who:"a",amount:48000,from:52,to:null,growth:-3,vol:25},
+      {id:"gig",label:"Live work, teaching and commissions",kind:"work",who:"a",amount:12000,from:52,to:ret,growth:0,vol:0},
+      {id:"penA",label:"State pension (you)",short:"Your pension",kind:"pension",who:"a",amount:4200,from:65,to:null,growth:0,vol:0},
+      {id:"penB",label:"State pension (partner)",short:"Partner's pension",kind:"pension",who:"b",amount:3000,from:65,to:null,growth:0,vol:0}],
+    spending:[
+      {id:"live",label:"Household (home paid off)",amount:40000,from:52,to:null},
+      {id:"care",label:"Health and care later in life",short:"Care costs begin",amount:4000,from:78,to:null}],
+    buckets:[
+      {id:"eur",label:"Euro bank deposits",cls:"cash",amount:280000},
+      {id:"gov",label:"Government savings bonds (local currency)",cls:"lcy",amount:320000},
+      {id:"lcl",label:"Savings in local currency",cls:"lcy",amount:100000},
+      {id:"shr",label:"Locally listed shares",cls:"local",amount:150000},
+      {id:"etf",label:"Global stock funds (ETFs)",cls:"world",amount:150000}],
+    property:[
+      {id:"home",label:"Home (paid off)",short:"Home",value:280000,home:true,rent:0,mortgage:0,mortgageEnd:0,rate:0,sellAt:null}],
+    angel:null}
+},
+angel:{
+  tab:"Angel investor",
+  title:"Angel investor",
+  lede:"Tech wealth, small start-up cheques and a power law. Pick an example size.",
+  story:`<p>You built or sold a tech company, or worked in one long enough to own a real stake. Now you write <strong>small cheques</strong>, €5,000 to €25,000, into young companies in your local tech scene, partly for returns and partly to help the ecosystem. Most of your wealth sits in markets and property; the angel portfolio is small but gets most of the attention.</p>
+<p>Start-up outcomes follow a <strong>power law</strong>: most companies return nothing, some return the money, and a rare one returns ten to thirty times or more. That makes the number of cheques, and the share of wealth they take, the decisions that matter.</p>`,
+  assumptions:[
+    "Each cheque's outcome is drawn from a profile. In the typical small-ticket profile, 60% of companies return nothing, 22% return half or all of the money, 11% return 3×, 5% return 10× and 2% return 30×. Exits come 3 to 10 years after the cheque.",
+    "The selective profile has fewer failures and more winners; it stands for an angel who picks carefully and follows on in winners.",
+    "Cheques already written pay out over the next 1 to 8 years with the same profile.",
+    "Rents are after costs. Homes are not counted as savings. State pensions are modest. Prices rise 3% a year.",
+    "The three example sizes (€1M still employed, €5M after an exit, €30M after a large exit) are illustrations, not anyone's real accounts."],
+  risks:[
+    {lvl:"high",t:"A power law needs numbers",p:"With the typical profile used here, five companies lose money overall in about 6 futures out of 10; twenty-five companies in about 1 in 3; fifty in about 1 in 5. The average is carried by rare winners. A well-known study of US angel groups (Wiltbank and Boeker, 2007) found about half of exits returned less than the money invested, while a small share of exits at 10× or more produced most of the total return."},
+    {lvl:"medium",t:"Locked up for 5 to 10 years",p:"Money in start-ups cannot pay bills, be rebalanced or be sold in a downturn."},
+    {lvl:"medium",t:"Home bias",p:"Local start-ups, locally listed shares, local-currency bonds and local property all ride the same economy."},
+    {lvl:"medium",t:"Lifestyle is the real lever",p:"At every size, spending decides more than returns. Compare “Spend 10% less” with the angel bars below."},
+    {lvl:"low",t:"Follow-on rounds",p:"Winners raise more money. Without reserves for follow-ons, your stake gets diluted just when it starts to matter."}],
+  ideas:[
+    "Set the angel budget as a share of liquid wealth and a number of cheques per year, then stick to it. Many experienced angels keep start-ups to around 5–10% of their wealth.",
+    "Keep a simple log of every cheque: date, amount, round, valuation and status.",
+    "Reserve as much for follow-ons as for first cheques in the companies that work.",
+    "Invest alongside a lead investor or a group that does real due diligence.",
+    "Balance local exposure with global stock funds."],
+  levers:["stopAngel","doubleAngel","seasoned","spendLess","retireLater","moreStocks","marketsWeaker","lowerFees"],
+  defaultTier:"€5M",
+  tiers:{
+    "€1M":{
+      people:{a:{age:46},b:{age:44}},retireAge:62,planTo:95,inflation:3.0,drag:0.5,
+      income:[
+        {id:"sal",label:"Salary in tech, after tax",kind:"work",who:"a",amount:70000,from:46,to:ret,growth:1,vol:0},
+        {id:"penA",label:"State pension (you)",short:"Your pension",kind:"pension",who:"a",amount:5000,from:65,to:null,growth:0,vol:0},
+        {id:"penB",label:"State pension (partner)",short:"Partner's pension",kind:"pension",who:"b",amount:4000,from:65,to:null,growth:0,vol:0}],
+      spending:[
+        {id:"live",label:"Household",amount:52000,from:46,to:null},
+        {id:"kids",label:"Children's studies",short:"Studies paid",amount:8000,from:46,to:52},
+        {id:"care",label:"Health and care later in life",short:"Care costs begin",amount:5000,from:80,to:null}],
+      buckets:[
+        {id:"cash",label:"Cash and deposits",cls:"cash",amount:60000},
+        {id:"etf",label:"Global stock funds (ETFs)",cls:"world",amount:220000},
+        {id:"shr",label:"Locally listed and single stocks",cls:"local",amount:120000},
+        {id:"gov",label:"Local-currency government bonds",cls:"lcy",amount:80000},
+        {id:"p2",label:"Mandatory private pension",short:"Private pension pays out",cls:"world",amount:45000,locked:65,you:0,employer:3500,until:ret}],
+      property:[
+        {id:"home",label:"Home",short:"Home",value:260000,home:true,rent:0,mortgage:0,mortgageEnd:0,rate:0,sellAt:null},
+        {id:"flat",label:"Rented flat",short:"Rented flat",value:150000,home:false,rent:7200,mortgage:0,mortgageEnd:0,rate:0,sellAt:null}],
+      angel:{existing:40000,count:8,perYear:5,ticket:5000,years:8,profile:"novice"}},
+    "€5M":{
+      people:{a:{age:46},b:{age:44}},retireAge:55,planTo:95,inflation:3.0,drag:0.5,
+      income:[
+        {id:"adv",label:"Board seats and advisory work",kind:"work",who:"a",amount:60000,from:46,to:ret,growth:0,vol:0},
+        {id:"penA",label:"State pension (you)",short:"Your pension",kind:"pension",who:"a",amount:6000,from:65,to:null,growth:0,vol:0},
+        {id:"penB",label:"State pension (partner)",short:"Partner's pension",kind:"pension",who:"b",amount:4800,from:65,to:null,growth:0,vol:0}],
+      spending:[
+        {id:"live",label:"Household",amount:110000,from:46,to:null},
+        {id:"kids",label:"Children's studies abroad",short:"Studies paid",amount:30000,from:46,to:52},
+        {id:"care",label:"Health and care later in life",short:"Care costs begin",amount:8000,from:80,to:null}],
+      buckets:[
+        {id:"cash",label:"Cash and deposits",cls:"cash",amount:400000},
+        {id:"etf",label:"Global stock funds (ETFs)",cls:"world",amount:2200000},
+        {id:"shr",label:"Locally listed and single stocks",cls:"local",amount:500000},
+        {id:"gov",label:"Local-currency government bonds",cls:"lcy",amount:400000},
+        {id:"p3",label:"Voluntary private pension",short:"Private pension opens",cls:"world",amount:100000,locked:60,you:0,employer:0,until:null}],
+      property:[
+        {id:"home",label:"Home",short:"Home",value:700000,home:true,rent:0,mortgage:0,mortgageEnd:0,rate:0,sellAt:null},
+        {id:"flats",label:"Two rented flats",short:"Rented flats",value:400000,home:false,rent:18000,mortgage:0,mortgageEnd:0,rate:0,sellAt:null}],
+      angel:{existing:150000,count:20,perYear:6,ticket:10000,years:8,profile:"novice"}},
+    "€30M":{
+      people:{a:{age:46},b:{age:44}},retireAge:55,planTo:95,inflation:3.0,drag:0.5,
+      income:[
+        {id:"adv",label:"Board seats and advisory work",kind:"work",who:"a",amount:100000,from:46,to:ret,growth:0,vol:0},
+        {id:"penA",label:"State pension (you)",short:"Your pension",kind:"pension",who:"a",amount:6000,from:65,to:null,growth:0,vol:0},
+        {id:"penB",label:"State pension (partner)",short:"Partner's pension",kind:"pension",who:"b",amount:4800,from:65,to:null,growth:0,vol:0}],
+      spending:[
+        {id:"live",label:"Household",amount:350000,from:46,to:null},
+        {id:"kids",label:"Children's studies abroad",short:"Studies paid",amount:60000,from:46,to:52},
+        {id:"care",label:"Health and care later in life",short:"Care costs begin",amount:20000,from:80,to:null}],
+      buckets:[
+        {id:"cash",label:"Cash and deposits",cls:"cash",amount:2000000},
+        {id:"bonds",label:"Euro bonds",cls:"bonds",amount:2500000},
+        {id:"etf",label:"Global stock funds (ETFs)",cls:"world",amount:11000000},
+        {id:"shr",label:"Locally listed and single stocks",cls:"local",amount:3000000},
+        {id:"gov",label:"Local-currency government bonds",cls:"lcy",amount:1500000}],
+      property:[
+        {id:"home",label:"Home",short:"Home",value:2500000,home:true,rent:0,mortgage:0,mortgageEnd:0,rate:0,sellAt:null},
+        {id:"rentals",label:"Rental property portfolio",short:"Rentals",value:5000000,home:false,rent:200000,mortgage:0,mortgageEnd:0,rate:0,sellAt:null}],
+      angel:{existing:1500000,count:60,perYear:12,ticket:25000,years:10,profile:"novice"}}
+  }
+}};
+const ORDER=["twohomes","royalties","angel"];
+
+// ===== Questions to take to an AI assistant =====
+const GENERAL_ASK=[
+  "Explain a Monte Carlo retirement simulation as if I were new to investing. What does a “90% chance of success” really mean, and what doesn't it mean?",
+  "In retirement I need about €[gap] a year from savings of €[savings]. What withdrawal rate is that, and how has a rate like that held up historically over 30 to 40 years?",
+  "Walk me through what a 2008-style market crash in my first year of retirement would do to my savings, year by year, compared with the same crash ten years later.",
+  "Which assumptions in my plan are most likely to be wrong, and how can I check each one?",
+  "How big should my cash buffer be when I stop working, and how should I refill it after a bad year?",
+  "What should I ask a fee-only financial planner before hiring them, and how can I tell whether they act in my interest?"];
+const ASK={
+  twohomes:[
+    "We live on one salary. How do I work out how much life and disability cover we need, given a mortgage and children still studying?",
+    "Compare keeping both homes in retirement with selling one: running costs, taxes on the sale, and the effect on our savings.",
+    "How do survivor pensions work in [country], and what would my partner receive if I died first?",
+    "Which tax-advantaged retirement accounts can I use in [country], how much can I put in each year, and when can I take the money out?",
+    "Part of my savings is in my employer's shares. How much is too much, and how could I reduce it without a large tax bill?"],
+  royalties:[
+    "My royalties for the last five years were [amounts]. Estimate a realistic yearly trend and range for the next 20 years, and explain your reasoning.",
+    "How should a household with uneven income pay itself a steady monthly amount, and how big should the buffer be?",
+    "What happens to copyright and royalty income after the author's death in [country], and how should we plan the inheritance?",
+    "Most of our savings are in local-currency bonds and deposits. What are the risks, and how could we move part into global index funds gradually?",
+    "As a self-employed creator in [country], how can I improve my state pension or start a private one?"],
+  angel:[
+    "Assuming most start-ups fail and a few return 10× or more, how many investments do I need for a reasonable chance of beating a global index fund?",
+    "Given my age, spending and liquid wealth, what share of my net worth should sit in illiquid start-up stakes?",
+    "How should I size follow-on reserves, and when should I stop following on in a company?",
+    "How can I keep simple records of my angel portfolio and value it once a year?",
+    "How are gains and losses on start-up investments taxed in [country], and can losses offset gains?"]
+};
+
+// ===== What-if levers (each edits a copy of the model) =====
+const hasWork=m=>m.income.some(s=>s.kind==="work"&&s.amount>0&&s.to===ret);
+const LEVERS={
+  retireLater:{label:"Work 2 years longer",when:hasWork,apply:m=>{m.retireAge=Math.min(85,+m.retireAge+2);}},
+  retireEarlier:{label:"Stop working 2 years earlier",when:m=>hasWork(m)&&+m.retireAge-2>+m.people.a.age,apply:m=>{m.retireAge=+m.retireAge-2;}},
+  incomeStops55:{label:m=>`Salary stops at 55, no other work until ${m.retireAge}`,when:m=>hasWork(m)&&+m.retireAge>55&&+m.people.a.age<55,apply:m=>{for(const s of m.income)if(s.kind==="work")s.to=Math.min(55,ageVal(s.to,m));}},
+  spendLess:{label:"Spend 10% less",apply:m=>{for(const s of m.spending)s.amount*=0.9;}},
+  sellMain:{label:"Sell the main home at 66 and move to the second home (costs −20%)",when:m=>m.property.some(p=>p.id==="main"&&p.sellAt==null),apply:m=>{m.property.find(p=>p.id==="main").sellAt=66;for(const s of m.spending)if(s.id==="liveR")s.amount*=0.8;}},
+  sellSecond:{label:"Sell the second home at 70",when:m=>m.property.some(p=>p.id==="second"&&p.sellAt==null),apply:m=>{m.property.find(p=>p.id==="second").sellAt=70;}},
+  moreStocks:{label:"Move 20% of savings into stock funds",apply:m=>{
+    const liq=m.buckets.filter(b=>b.locked==null);let tot=0,safe=0;for(const b of liq){tot+=b.amount;if(b.cls==="cash"||b.cls==="bonds"||b.cls==="lcy")safe+=b.amount;}
+    const mv=Math.min(.2*tot,safe);if(mv<=0)return;for(const b of liq)if(b.cls==="cash"||b.cls==="bonds"||b.cls==="lcy")b.amount-=b.amount/safe*mv;
+    m.buckets.push({id:"lever",label:"",cls:"world",amount:mv});}},
+  marketsWeaker:{label:"Markets 1 point weaker every year",apply:()=>({muShift:1})},
+  lowerFees:{label:"Cut fees and taxes on returns by 0.5 point",when:m=>+m.drag>0,apply:m=>{m.drag=Math.max(0,+m.drag-.5);}},
+  royaltiesHalve:{label:"Royalties halve",apply:m=>{for(const s of m.income)if(s.kind==="royalty")s.amount*=.5;}},
+  royaltiesFlat:{label:"Royalties hold steady instead of fading",apply:m=>{for(const s of m.income)if(s.kind==="royalty")s.growth=0;}},
+  stopGigs60:{label:"Stop live work and teaching at 60",when:m=>hasWork(m)&&+m.retireAge>60,apply:m=>{m.retireAge=60;}},
+  stopAngel:{label:"Write no new angel cheques",when:m=>m.angel&&m.angel.perYear>0,apply:m=>{m.angel.perYear=0;return {angel:true};}},
+  doubleAngel:{label:"Write twice as many angel cheques",when:m=>m.angel&&m.angel.perYear>0,apply:m=>{m.angel.perYear*=2;return {angel:true};}},
+  seasoned:{label:"Invest like a selective angel",when:m=>m.angel&&m.angel.profile!=="seasoned",apply:m=>{m.angel.profile="seasoned";return {angel:true};}}
+};
+
+// ===== State =====
+const KEY="retmap:v1:";
+const hashId=location.hash.slice(1);
+let cur=ONLY||(ORDER.includes(hashId)?hashId:ORDER[0]);
+let M=null,R=null,units="real";
+function example(id,tier){const p=PERSONAS[id];let m;if(p.tiers){const t=tier&&p.tiers[tier]?tier:p.defaultTier;m=clone(p.tiers[t]);m.tier=t;}else m=clone(p.base);m.v=1;m.market=defaultMarket();return m;}
+// "until your partner is 95" / "until you are 95" / "until you are both 95"
+function untilTxt(){const a=+M.people.a.age,b=+M.people.b.age;return b<a?`until your partner is ${M.planTo}`:b>a?`until you are ${M.planTo}`:`until you are both ${M.planTo}`;}
+// Saved numbers come back from browser storage, which other pages on the same site could also write. So a saved
+// model is rebuilt on top of the example: labels and structure always come from the example, and only numbers in a
+// sensible range, the allowed choices (investment type, angel profile, example size) and "keep"/"for life" markers
+// are taken from storage.
+const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const RANGE={age:[18,95],retireAge:[18,85],planTo:[60,110],inflation:[0,15],drag:[0,5],mu:[-5,25],sd:[0,60],growth:[-30,30],vol:[0,80],
+  perYear:[0,60],years:[0,40],count:[0,1000],rate:[0,20],from:[0,120],to:[0,120],locked:[0,120],sellAt:[0,120],mortgageEnd:[0,120],until:[0,120]};
+function sanitize(saved,id){
+  const ex=example(id,typeof saved.tier==="string"&&PERSONAS[id].tiers&&has(PERSONAS[id].tiers,saved.tier)?saved.tier:undefined);
+  const field=(k,e,s)=>{
+    if(k==="cls")return typeof s==="string"&&has(CLASSES,s)?s:e;
+    if(k==="profile")return typeof s==="string"&&has(ANGEL_PROFILES,s)?s:e;
+    if(e!==null&&typeof e==="object")return pick(e,s);
+    if(typeof e!=="number"&&e!==null&&e!==ret)return e;
+    if(typeof s==="number"&&isFinite(s)){const [lo,hi]=RANGE[k]||[0,1e11];return Math.min(hi,Math.max(lo,s));}
+    if(s===null&&(e===null||k==="sellAt"))return null;
+    if(s===ret&&e===ret)return ret;
+    return e;};
+  const pick=(e,s)=>{
+    if(Array.isArray(e))return e.map((x,i)=>{const y=Array.isArray(s)?s[i]:undefined;return pick(x,y&&typeof y==="object"&&(x.id==null||y.id===x.id)?y:undefined);});
+    const o={};for(const k of Object.keys(e))o[k]=field(k,e[k],s&&typeof s==="object"?s[k]:undefined);return o;};
+  const m=pick(ex,saved);m.v=1;return m;
+}
+function load(id){try{const s=localStorage.getItem(KEY+id);if(s&&s.length<200000){const m=JSON.parse(s);if(m&&typeof m==="object"&&!Array.isArray(m))return sanitize(m,id);}}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY+cur,JSON.stringify(M));}catch(e){}}
+function forget(){try{localStorage.removeItem(KEY+cur);}catch(e){}}
+const getP=path=>path.split(".").reduce((o,k)=>o==null?o:o[k],M);
+function setP(path,v){const ks=path.split(".");let o=M;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];o[ks[ks.length-1]]=v;}
+
+// ===== Form =====
+const CLASS_OPTS=LIQUID_CLASSES.map(k=>[k,CLASSES[k].name]);
+function idOf(path){return "in-"+path.replace(/\./g,"-");}
+function fNum(path,cap,o={}){const v=getP(path);
+  return `<label class="fld"><span>${cap}</span><input type="number" inputmode="decimal" id="${idOf(path)}" data-path="${path}" value="${v==null?"":esc(v)}"${o.min!=null?` min="${o.min}"`:""}${o.max!=null?` max="${o.max}"`:""} step="${o.step||1}"${o.blank?` data-blank="1" placeholder="${o.ph||"—"}"`:""}></label>`;}
+function fAge(path,cap,who){const v=getP(path);
+  if(v===ret)return `<div class="fld"><span>${cap}</span><span class="agechip" data-retchip>stop work · ${M.retireAge}</span></div>`;
+  if(v==null)return `<div class="fld"><span>${cap}</span><span class="agechip">for life</span></div>`;
+  return fNum(path,cap+(who==="b"?" (partner)":""),{min:0,max:110});}
+function fSel(path,cap,opts){const v=getP(path);return `<label class="fld"><span>${cap}</span><select id="${idOf(path)}" data-path="${path}">${opts.map(([k,l])=>`<option value="${k}"${k===v?" selected":""}>${esc(l)}</option>`).join("")}</select></label>`;}
+const item=(label,fields,extra="")=>`<div class="item"><div class="item-label">${esc(label)}</div><div class="fields">${fields.join("")}</div>${extra}</div>`;
+const sec=(title,body,open=true)=>`<details class="sec"${open?" open":""}><summary>${title}</summary><div class="sec-body">${body}</div></details>`;
+function renderForm(){
+  const p=PERSONAS[cur];let h="";
+  h+=`<div class="form-head"><h2>Your numbers</h2><button type="button" class="link" id="reset">Reset to example</button></div>
+  <p class="note" style="margin:4px 0 12px">Example figures. Type your own; they are kept in this browser only. Amounts are per year, after tax, in today's euros.</p>`;
+  if(p.tiers)h+=`<div class="tierbar"><span>Example size</span>${Object.keys(p.tiers).map(k=>`<button type="button" class="chip${M.tier===k?" on":""}" data-tier="${esc(k)}">${esc(k)}</button>`).join("")}</div>`;
+  h+=sec("People and timing",item("Ages",[fNum("people.a.age","Your age",{min:18,max:95}),fNum("people.b.age","Partner's age",{min:18,max:95})])+
+    item("Timing",[fNum("retireAge","You stop work at",{min:18,max:85}),fNum("planTo","Plan until the younger is",{min:60,max:110})]));
+  h+=sec("Income after tax",M.income.map((s,i)=>item(s.label,[fNum(`income.${i}.amount`,"€ per year",{min:0,step:500}),fAge(`income.${i}.from`,"from age",s.who),fAge(`income.${i}.to`,"until age",s.who)]
+    .concat(s.kind==="royalty"?[fNum(`income.${i}.growth`,"change % / yr",{min:-30,max:30,step:.5}),fNum(`income.${i}.vol`,"swings %",{min:0,max:80,step:1})]:s.kind==="work"?[fNum(`income.${i}.growth`,"raise % / yr",{min:-10,max:10,step:.5})]:[]))).join(""));
+  h+=sec("Spending",M.spending.map((s,i)=>item(s.label,[fNum(`spending.${i}.amount`,"€ per year",{min:0,step:500}),fAge(`spending.${i}.from`,"from age","a"),fAge(`spending.${i}.to`,"until age","a")],
+    `<span class="hint">≈ <span class="mo" data-mo="spending.${i}.amount"></span> a month</span>`)).join(""));
+  h+=sec("Savings and investments",M.buckets.map((b,i)=>item(b.label,[fNum(`buckets.${i}.amount`,"€ now",{min:0,step:1000}),fSel(`buckets.${i}.cls`,"invested in",CLASS_OPTS)]
+    .concat(b.locked!=null?[fAge(`buckets.${i}.locked`,"locked until age","a"),fNum(`buckets.${i}.you`,"you add / yr",{min:0,step:500}),fNum(`buckets.${i}.employer`,"employer adds / yr",{min:0,step:500})]:[]))).join(""));
+  h+=sec("Homes and property",M.property.map((q,i)=>item(q.label,[fNum(`property.${i}.value`,"value €",{min:0,step:5000}),fNum(`property.${i}.rent`,"rent after costs / yr",{min:0,step:500})]
+    .concat((+q.mortgage>0)?[fNum(`property.${i}.mortgage`,"mortgage € / yr",{min:0,step:100}),fNum(`property.${i}.mortgageEnd`,"paid off at age",{min:0,max:110})]:[])
+    .concat([fNum(`property.${i}.sellAt`,"sell at age",{min:0,max:110,blank:true,ph:"keep"})]))).join("")+
+    `<p class="hint">Leave “sell at age” empty to keep a property. A sale pays the price minus 6% costs and any mortgage left into savings.</p>`,false);
+  if(M.angel)h+=sec("Angel investing",item("Cheques already written",[fNum("angel.existing","€ invested",{min:0,step:5000}),fNum("angel.count","companies",{min:0,step:1})])+
+    item("New cheques",[fNum("angel.perYear","cheques / yr",{min:0,max:60,step:1}),fNum("angel.ticket","€ each",{min:0,step:1000}),fNum("angel.years","for years",{min:0,max:40,step:1})])+
+    item("Outcome profile",[fSel("angel.profile","how cheques turn out",Object.entries(ANGEL_PROFILES).map(([k,v])=>[k,v.name]))]));
+  h+=sec("Markets, inflation and fees",item("Economy",[fNum("inflation","inflation %",{min:0,max:15,step:.1}),fNum("drag","fees + taxes on returns %",{min:0,max:5,step:.1})])+
+    `<div class="scroll-x"><table class="tbl"><thead><tr><th>Investment</th><th>Avg return %</th><th>Swings % (1σ)</th></tr></thead><tbody>${CK.map(k=>`<tr><td>${esc(CLASSES[k].name)}</td><td><input type="number" step="0.1" min="-5" max="25" id="${idOf("market."+k+".mu")}" data-path="market.${k}.mu" value="${esc(M.market[k].mu)}"></td><td><input type="number" step="0.5" min="0" max="60" id="${idOf("market."+k+".sd")}" data-path="market.${k}.sd" value="${esc(M.market[k].sd)}"></td></tr>`).join("")}</tbody></table></div>
+    <p class="hint">Yearly averages in euros before inflation. Global stocks at 8% with 17% swings grow about 6.7% a year in a typical stretch.</p>`,false);
+  $("form").innerHTML=h;updateHints();
+}
+function updateHints(){document.querySelectorAll("[data-mo]").forEach(el=>{el.textContent=eurFull((+getP(el.dataset.mo)||0)/12);});
+  document.querySelectorAll("[data-retchip]").forEach(el=>{el.textContent=`stop work · ${M.retireAge}`;});}
+function onField(e){const el=e.target,path=el.dataset&&el.dataset.path;if(!path)return;
+  if(el.tagName==="SELECT")setP(path,el.value);
+  else{if(el.value===""){if(el.dataset.blank){setP(path,null);el.classList.remove("invalid");}else return;}
+    else{const v=parseFloat(el.value);if(!isFinite(v))return;const lo=el.min!==""?+el.min:-Infinity,hi=el.max!==""?+el.max:Infinity,c=Math.min(hi,Math.max(lo,v));el.classList.toggle("invalid",c!==v);setP(path,c);}}
+  updateHints();save();schedule();}
+$("form").addEventListener("input",onField);
+$("form").addEventListener("change",e=>{const el=e.target;if(el.tagName==="INPUT"&&el.dataset.path){const v=getP(el.dataset.path);el.value=v==null?"":v;el.classList.remove("invalid");}});
+$("form").addEventListener("click",e=>{const tb=e.target.closest("[data-tier]");
+  if(tb){M=example(cur,tb.dataset.tier);save();renderForm();schedule(0);return;}
+  if(e.target.id==="reset"){forget();M=example(cur,M.tier);renderForm();schedule(0);}});
+
+// ===== Header, story, tabs =====
+function renderHeader(){const p=PERSONAS[cur];
+  $("h1").textContent=p.title;$("lede").textContent=p.lede;$("story").innerHTML=p.story;
+  $("risks").innerHTML=p.risks.map(r=>`<div class="risk"><span class="lvl ${r.lvl}">${r.lvl}</span><h3>${esc(r.t)}</h3><p>${esc(r.p)}</p></div>`).join("");
+  $("ideas").innerHTML=p.ideas.map(x=>`<li>${esc(x)}</li>`).join("");
+  $("assume").innerHTML=p.assumptions.map(x=>`<li>${esc(x)}</li>`).join("");
+  const qli=q=>`<li><span class="q">${esc(q)}</span><button type="button" class="copy">Copy</button></li>`;
+  $("askPersona").innerHTML=(ASK[cur]||[]).map(qli).join("");
+  $("askGeneral").innerHTML=GENERAL_ASK.map(qli).join("");
+  const tabs=$("tabs");
+  if(ONLY){tabs.hidden=true;}else{tabs.innerHTML=ORDER.map(id=>`<button type="button" data-p="${id}" aria-pressed="${id===cur}">${esc(PERSONAS[id].tab)}</button>`).join("");}
+}
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b||b.dataset.p===cur)return;switchTo(b.dataset.p);});
+function switchTo(id){cur=id;M=load(id)||example(id);try{history.replaceState(null,"","#"+id);}catch(e){}renderHeader();renderForm();schedule(0);}
+document.querySelectorAll("#units button").forEach(b=>b.addEventListener("click",()=>{units=b.dataset.u;document.querySelectorAll("#units button").forEach(x=>x.setAttribute("aria-pressed",x===b));if(R)drawFan();}));
+
+// ===== Compute =====
+let timer;function schedule(ms=140){clearTimeout(timer);timer=setTimeout(compute,ms);}
+function compute(){
+  const P=2000,PB=1000,t0=performance.now();
+  const plan=resolve(M),draws=makeDraws(plan,P,M.market),ang=angelPlan(M,plan,P);
+  const main=project(plan,draws,ang,{P,record:true});
+  const base1=project(plan,draws,ang,{P:PB}).success;
+  const sus=sustainable(plan,draws,ang,PB,.9);
+  const lev=[];
+  for(const id of PERSONAS[cur].levers){const L=LEVERS[id];if(!L||(L.when&&!L.when(M)))continue;
+    const m2=clone(M),o=L.apply(m2)||{},p2=resolve(m2);
+    const d2=p2.H===plan.H&&p2.roy.length===plan.roy.length?draws:makeDraws(p2,PB,m2.market);
+    const a2=o.angel?angelPlan(m2,p2,PB):ang;
+    lev.push({label:typeof L.label==="function"?L.label(M):L.label,delta:project(p2,d2,a2,{P:PB,muShift:o.muShift||0}).success-base1});}
+  const dep=Float64Array.from(main.dep).sort(),H1=plan.H+1;
+  const rank=Array.from({length:P},(_,p)=>p).sort((x,y)=>main.inv[x*H1+plan.H]-main.inv[y*H1+plan.H]);
+  const samples=[.1,.3,.5,.7,.9].map(q=>main.inv.slice(rank[Math.round(q*(P-1))]*H1,(rank[Math.round(q*(P-1))]+1)*H1));
+  R={plan,main,ang,sus,lev,P,dep,samples,real:bands(main.inv,P,plan.H,plan.infl,true),nom:bands(main.inv,P,plan.H,plan.infl,false),ms:performance.now()-t0};
+  renderResults();
+}
+
+// ===== Results =====
+function events(){
+  const plan=R.plan,a0=plan.a0,end=a0+plan.H,ev=[];
+  const add=(age,label,kind)=>{if(age>a0&&age<end)ev.push({age,label,kind});};
+  if(hasWork(M))add(+M.retireAge,"Stop work","work");
+  for(const s of M.income)if(s.kind==="pension"&&s.amount>0){const fa=ageVal(s.from,M),aa=s.who==="b"?fa-plan.b0+a0:fa;add(aa,s.short||"Pension","pension");}
+  for(const q of M.property){if(+q.mortgage>0&&(q.sellAt==null||q.sellAt>q.mortgageEnd))add(+q.mortgageEnd,"Mortgage paid","home");if(q.sellAt!=null)add(+q.sellAt,"Sell "+(q.short||q.label),"home");}
+  for(const b of M.buckets)if(b.locked!=null)add(ageVal(b.locked,M),b.short||"Locked savings open","save");
+  for(const s of M.spending)if(s.short){if(s.id==="kids")add(ageVal(s.to,M),s.short,"spend");else add(ageVal(s.from,M),s.short,"spend");}
+  if(M.angel&&M.angel.perYear>0)add(a0+Math.round(M.angel.years),"Last angel cheque","angel");
+  const merged=[];for(const e of ev.sort((x,y)=>x.age-y.age)){const last=merged[merged.length-1];if(last&&last.age===e.age){if(!last.label.includes(e.label))last.label+=" · "+e.label;}else merged.push({...e});}
+  return merged;
+}
+function renderResults(){
+  const r=R,plan=r.plan,a0=plan.a0,H=plan.H;
+  // KPIs
+  const s=r.main.success,cls=s>=.85?"good":s>=.7?"warn":"bad",word=s>=.85?"comfortable":s>=.7?"tight":"at risk";
+  $("k1").innerHTML=`${pct(s)}<span class="pill ${cls}">${word}</span>`;
+  $("k1s").textContent=`Savings never run dry ${untilTxt()}, across ${r.P.toLocaleString("en-GB")} simulated futures.`;
+  let mAge=hasWork(M)&&+M.retireAge>a0?+M.retireAge:(65>a0?65:a0+10);mAge=Math.min(mAge,a0+H);
+  const mt=mAge-a0;
+  $("k2l").textContent=hasWork(M)&&+M.retireAge>a0?`Savings when you stop work at ${mAge}`:`Savings at ${mAge}`;
+  $("k2").textContent=eur(r.real[2][mt]);
+  $("k2s").textContent=`Typical path, today's €. 1 in 10 futures end up below ${eur(r.real[0][mt])}, 1 in 10 above ${eur(r.real[4][mt])}.`;
+  let sp1=0;for(let t=1;t<=H;t++){sp1=plan.spend[t]/plan.infl[t];if(sp1>0)break;}
+  if(isFinite(r.sus)){$("k3").textContent=`${eur(r.sus*sp1/12)} / mo`;
+    $("k3s").textContent=`${Math.round(r.sus*100)}% of planned spending (now ${eur(sp1/12)} / mo), with 9 in 10 futures still lasting.`;}
+  else{$("k3").textContent="—";$("k3s").textContent="Add spending to see this.";}
+  const d10=qAt(r.dep,.1);
+  if(isFinite(d10)){$("k4").textContent=`Runs out at ${Math.round(d10)}`;$("k4s").textContent=`Savings are gone by age ${Math.round(d10)} in the unluckiest tenth of futures; pensions and other income continue.`;}
+  else{$("k4").textContent="Still lasts";$("k4s").textContent=`Even the unluckiest tenth of futures keeps some savings ${untilTxt()}.`;}
+  $("routeNote").textContent=`Ages are yours; your partner is ${plan.b0} today. The plan runs ${untilTxt()}.`;
+  R.kv={mAge,mid:r.real[2][mt],lo:r.real[0][mt],hi:r.real[4][mt],sp1,d10};
+  $("planText").value=planText();
+  renderFacts();renderTimeline();renderMix();drawFan();drawSurv();drawFlow();renderAngel();renderLevers();
+}
+function renderFacts(){
+  const plan=R.plan,a0=plan.a0;let net=0;for(const s of M.income)if((s.kind==="work"||s.kind==="royalty")&&ageVal(s.from,M)<=a0&&(s.to==null||ageVal(s.to,M)>a0))net+=+s.amount||0;
+  let liq=0,lock=0;for(const b of M.buckets){if(b.locked!=null&&ageVal(b.locked,M)>a0)lock+=+b.amount||0;else liq+=+b.amount||0;}
+  let homes=0,mort=0;for(const q of M.property){homes+=+q.value||0;const n=(+q.mortgageEnd||0)-a0;if(+q.mortgage>0&&n>0){const rt=(+q.rate||0)/100;mort+=rt>0?q.mortgage*(1-Math.pow(1+rt,-n))/rt:q.mortgage*n;}}
+  const f=[[`${a0} and ${plan.b0}`,"your ages"],[eur(net)+" / yr","earned now, after tax"],[eur(liq+lock),lock>0?`savings (${eur(lock)} locked)`:"savings you can use"],[eur(homes),mort>0?`property, ${eur(mort)} mortgage left`:"property, no mortgage"]];
+  if(M.angel)f.push([eur(+M.angel.existing||0),`in ${M.angel.count} start-ups so far`],[`${M.angel.perYear} × ${eur(M.angel.ticket)}`,`new cheques a year, for ${M.angel.years} years`]);
+  $("facts").innerHTML=f.map(([b,s])=>`<li><b>${esc(b)}</b><span>${esc(s)}</span></li>`).join("");
+}
+// Metro-style line: working years in the route colour, later years in the data colour; labels take the first free row above or below.
+function renderTimeline(){
+  const plan=R.plan,a0=plan.a0,end=a0+plan.H,svg=$("timeline");
+  const W=1000,x0=50,x1=950,X=a=>x0+(x1-x0)*(a-a0)/(end-a0);
+  const route=tok("--route"),data=tok("--data"),ink=tok("--ink"),muted=tok("--muted"),surf=tok("--surface"),faint=tok("--faint");
+  const stop=hasWork(M)?Math.min(Math.max(+M.retireAge,a0),end):a0;
+  const ev=[{age:a0,label:"Today",kind:"start"},...events(),{age:end,label:plan.b0<a0?`Plan ends · partner ${plan.b0+plan.H}`:"Plan ends",kind:"end"}];
+  const rows={up:[],down:[]};let maxUp=0,maxDown=-1,ticks="",dots="",texts="";
+  for(const e of ev){
+    const x=X(e.age),wd=Math.max(e.label.length,4)*8+8;
+    const anchor=x-wd/2<0?"start":x+wd/2>W?"end":"middle",s=anchor==="start"?x:anchor==="end"?x-wd:x-wd/2,f=s+wd;
+    let pl=null;
+    for(let lvl=0;lvl<6&&!pl;lvl++)for(const side of ["up","down"]){const r=rows[side][lvl]||(rows[side][lvl]=[]);if(r.every(([a,b])=>f<a-6||s>b+6)){r.push([s,f]);pl={side,lvl};break;}}
+    if(!pl)pl={side:"up",lvl:5};
+    const up=pl.side==="up",ty=up?-30-pl.lvl*40:46+pl.lvl*40;
+    if(up)maxUp=Math.max(maxUp,pl.lvl);else maxDown=Math.max(maxDown,pl.lvl);
+    ticks+=`<line x1="${x}" y1="0" x2="${x}" y2="${up?ty+6:ty-24}" stroke="${faint}" stroke-width="1"/>`;
+    dots+=`<circle cx="${x}" cy="0" r="8" fill="${surf}" stroke="${e.kind==="start"||e.age<stop?route:data}" stroke-width="3.5"/>`;
+    texts+=`<text x="${x}" y="${ty-15}" text-anchor="${anchor}" font-size="15" font-weight="700" fill="${ink}" style="font-family:var(--mono)">${e.age}</text>`+
+           `<text x="${x}" y="${ty+3}" text-anchor="${anchor}" font-size="15" fill="${muted}">${esc(e.label)}</text>`;
+  }
+  const top=-30-maxUp*40-34,bot=maxDown<0?18:46+maxDown*40+10;
+  svg.setAttribute("viewBox",`0 ${top} ${W} ${bot-top}`);
+  svg.innerHTML=`<line x1="${x0}" y1="0" x2="${X(stop)}" y2="0" stroke="${route}" stroke-width="7" stroke-linecap="round"/>`+
+    `<line x1="${X(stop)}" y1="0" x2="${x1}" y2="0" stroke="${data}" stroke-width="7" stroke-linecap="round"/>`+ticks+dots+texts;
+}
+function renderMix(){
+  const segs=[];const a0=R.plan.a0;
+  for(const b of M.buckets){const locked=b.locked!=null&&ageVal(b.locked,M)>a0;segs.push({label:b.label,v:+b.amount||0,col:`var(--c-${b.cls})`,tags:[locked?"locked":"usable",b.cls==="lcy"?"non-euro":"€"],locked});}
+  for(const q of M.property)segs.push({label:q.label,v:+q.value||0,col:q.home?"var(--c-home)":"var(--c-prop)",tags:[q.home?"home":"rented","property"]});
+  if(M.angel)segs.push({label:"Start-up stakes (at cost)",v:+M.angel.existing||0,col:"var(--c-angel)",tags:["locked up","start-ups"]});
+  const tot=segs.reduce((s,x)=>s+x.v,0)||1;
+  $("mixTotal").textContent=eur(tot)+" in all";
+  $("mixbar").innerHTML=segs.filter(x=>x.v>0).map(x=>`<span class="${x.locked?"locked":""}" style="width:${(x.v/tot*100).toFixed(2)}%;background-color:${x.col}" title="${esc(x.label)}"></span>`).join("");
+  $("mixlist").innerHTML=segs.filter(x=>x.v>0).map(x=>`<li><i style="background:${x.col}"></i><span>${esc(x.label)} ${x.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</span><b>${eur(x.v)}</b></li>`).join("");
+  const w=R.plan.w;let mu=0,v=0;const sd=CK.map(k=>M.market[k].sd/100);
+  CK.forEach((k,i)=>{mu+=w[i]*M.market[k].mu/100;CK.forEach((k2,j)=>{v+=w[i]*w[j]*sd[i]*sd[j]*CORR[i][j];});});
+  const stocks=(w[3]+w[4])*100;
+  $("mixNote").textContent=`Usable savings: ${Math.round(stocks)}% in stocks. Expected about ${(mu*100-(+M.drag||0)).toFixed(1)}% a year after fees, with swings of about ±${(Math.sqrt(v)*100).toFixed(0)}% in a typical year. Inflation is ${(+M.inflation).toFixed(1)}%.`;
+}
+function setup(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};}
+function niceStep(x){if(x<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(x))),m=x/e;return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*e;}
+const monoFont=px=>`${px}px ${tok("--mono")||"monospace"}`;
+let fanGeom=null;
+function drawFan(hoverT){
+  const r=R,plan=r.plan,H=plan.H,a0=plan.a0,Q=units==="real"?r.real:r.nom,{c,w,h}=setup($("fan"));
+  const L=58,Rt=12,T=12,B=26,pw=w-L-Rt,ph=h-T-B;
+  const sv=(path,t)=>units==="real"?path[t]/plan.infl[t]:path[t];
+  let hi=0;for(let t=0;t<=H;t++){hi=Math.max(hi,Q[4][t]);if(showSamples)for(const sp of r.samples)hi=Math.max(hi,sv(sp,t));}
+  const step=niceStep(hi/4||1);hi=Math.ceil(hi/step)*step||1;
+  const X=t=>L+pw*t/H,Y=v=>T+ph*(1-Math.min(v,hi)/hi);
+  c.font=monoFont(11);c.fillStyle=tok("--faint");c.strokeStyle=tok("--line");c.lineWidth=1;c.textAlign="right";c.textBaseline="middle";
+  for(let v=0;v<=hi+1e-6;v+=step){const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(L,y);c.lineTo(L+pw,y);c.stroke();c.fillText(eur(v),L-8,y);}
+  c.textAlign="center";c.textBaseline="top";const xs=H>40?10:5;
+  for(let age=Math.ceil(a0/xs)*xs;age<=a0+H;age+=xs)c.fillText(String(age),X(age-a0),T+ph+7);
+  // events
+  c.save();c.setLineDash([3,4]);c.strokeStyle=tok("--faint");
+  for(const e of events()){const x=Math.round(X(e.age-a0))+.5;c.beginPath();c.moveTo(x,T);c.lineTo(x,T+ph);c.stroke();}
+  c.restore();
+  const band=(a,b,col)=>{c.beginPath();for(let t=0;t<=H;t++)c.lineTo(X(t),Y(Q[b][t]));for(let t=H;t>=0;t--)c.lineTo(X(t),Y(Q[a][t]));c.closePath();c.fillStyle=col;c.fill();};
+  band(0,4,tok("--data-soft"));band(1,3,tok("--data-mid"));
+  if(showSamples){c.save();c.strokeStyle=tok("--ink");c.lineWidth=1.2;c.globalAlpha=.6;for(const sp of r.samples){c.beginPath();for(let t=0;t<=H;t++)c.lineTo(X(t),Y(sv(sp,t)));c.stroke();}c.restore();}
+  c.beginPath();for(let t=0;t<=H;t++)c.lineTo(X(t),Y(Q[2][t]));c.strokeStyle=tok("--data");c.lineWidth=2.6;c.stroke();
+  // label the end of the typical path
+  c.font=`700 12px ${tok("--body")}`;c.fillStyle=tok("--data");c.textAlign="right";c.textBaseline="bottom";c.fillText("typical "+eur(Q[2][H]),X(H)-2,Y(Q[2][H])-6);
+  fanGeom={L,pw,T,ph,H,X,Y,Q};
+  $("fanNote").textContent=units==="real"?"Savings you can use plus locked pension plans, in today's euros. Homes are not included unless sold.":`In future euros, before adjusting for ${(+M.inflation).toFixed(1)}% inflation. Switch to today's € to compare with what money buys now.`;
+  if(hoverT!=null){const x=X(hoverT);c.strokeStyle=tok("--muted");c.setLineDash([2,3]);c.beginPath();c.moveTo(x,T);c.lineTo(x,T+ph);c.stroke();c.setLineDash([]);c.fillStyle=tok("--data");c.beginPath();c.arc(x,Y(Q[2][hoverT]),4,0,7);c.fill();}
+}
+function hoverFan(e){
+  if(!R||!fanGeom)return;const cv=$("fan"),b=cv.getBoundingClientRect(),g=fanGeom,x=e.clientX-b.left;
+  const t=Math.round((x-g.L)/g.pw*g.H);const tip=$("tip");if(t<0||t>g.H){tip.hidden=true;drawFan();return;}
+  const plan=R.plan,surv=t===0?1:R.dep.filter(d=>d>plan.a0+t-1).length/R.P;
+  tip.innerHTML=`<div class="t">Age ${plan.a0+t} · partner ${plan.b0+t}</div><div><span>Typical</span><b>${eur(g.Q[2][t])}</b></div><div><span>Middle half</span><b>${eur(g.Q[1][t])}–${eur(g.Q[3][t])}</b></div><div><span>8 in 10</span><b>${eur(g.Q[0][t])}–${eur(g.Q[4][t])}</b></div><div><span>Still funded</span><b>${pct(surv)}</b></div>`;
+  tip.hidden=false;const tx=g.X(t);tip.style.left=Math.max(0,Math.min(tx+12,b.width-190))+"px";tip.style.top=Math.max(0,g.Y(g.Q[2][t])-70)+"px";drawFan(t);
+}
+$("fan").addEventListener("mousemove",hoverFan);
+$("fan").addEventListener("mouseleave",()=>{$("tip").hidden=true;if(R)drawFan();});
+function drawSurv(){
+  const r=R,plan=r.plan,H=plan.H,a0=plan.a0,{c,w,h}=setup($("surv"));
+  const L=40,Rt=10,T=10,B=24,pw=w-L-Rt,ph=h-T-B,X=t=>L+pw*t/H,Y=v=>T+ph*(1-v);
+  c.font=monoFont(11);c.fillStyle=tok("--faint");c.strokeStyle=tok("--line");c.textAlign="right";c.textBaseline="middle";
+  [0,.5,.9,1].forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(L,y);c.lineTo(L+pw,y);c.stroke();c.fillText(Math.round(v*100)+"%",L-6,y);});
+  c.textAlign="center";c.textBaseline="top";const xs=H>40?10:5;
+  for(let age=Math.ceil(a0/xs)*xs;age<=a0+H;age+=xs)c.fillText(String(age),X(age-a0),T+ph+6);
+  const s=new Float64Array(H+1);s[0]=1;let k=0;const dep=r.dep;
+  for(let t=1;t<=H;t++){while(k<dep.length&&dep[k]<=a0+t-1)k++;s[t]=1-k/r.P;}
+  c.beginPath();c.moveTo(X(0),Y(0));for(let t=0;t<=H;t++)c.lineTo(X(t),Y(s[t]));c.lineTo(X(H),Y(0));c.closePath();c.fillStyle=tok("--data-soft");c.fill();
+  c.beginPath();for(let t=0;t<=H;t++)c.lineTo(X(t),Y(s[t]));c.strokeStyle=tok("--data");c.lineWidth=2.2;c.stroke();
+  const at=t=>s[Math.min(H,Math.max(0,t))];const a85=Math.min(85,a0+H),a95=a0+H;
+  $("survNote").textContent=`At ${a85}: ${pct(at(a85-a0))} of futures still have savings. At the end of the plan: ${pct(at(H))}.`;
+}
+const FLOW=[["work","Work","--f-work",1],["pension","Pensions","--f-pension",1],["royalty","Royalties","--f-royalty",1],["rent","Rent","--f-rent",1],["other","Other","--f-other",1],
+            ["live","Living costs","--f-live",-1],["mortgage","Mortgage","--f-mort",-1],["save","Locked savings","--f-save",-1],["angel","Angel cheques","--f-angel",-1]];
+let flowGeom=null;
+function drawFlow(hoverT){
+  const plan=R.plan,H=plan.H,a0=plan.a0,det=plan.det,{c,w,h}=setup($("flow"));
+  const used=FLOW.filter(([k])=>{for(let t=1;t<=H;t++)if(det[k][t]>0)return true;return false;});
+  $("flowLegend").innerHTML=used.map(([k,l,col])=>`<span><i style="background:var(${col})"></i>${l}</span>`).join("");
+  const val=(k,t)=>det[k][t]/plan.infl[t];
+  let up=0,dn=0;for(let t=1;t<=H;t++){let u=0,d=0;for(const [k,,,sg] of used){if(sg>0)u+=val(k,t);else d+=val(k,t);}up=Math.max(up,u);dn=Math.max(dn,d);}
+  const step=niceStep(Math.max(up,dn)/3||1);up=Math.ceil(up/step)*step;dn=Math.ceil(dn/step)*step;if(up+dn===0)up=1;
+  const L=58,Rt=10,T=10,B=24,pw=w-L-Rt,ph=h-T-B,span=up+dn,Y=v=>T+ph*(up-v)/span,bw=pw/H;
+  c.font=monoFont(11);c.fillStyle=tok("--faint");c.strokeStyle=tok("--line");c.textAlign="right";c.textBaseline="middle";
+  for(let v=-dn;v<=up+1e-6;v+=step){const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(L,y);c.lineTo(L+pw,y);c.stroke();c.fillText(eur(v),L-6,y);}
+  c.textAlign="center";c.textBaseline="top";const xs=H>40?10:5;
+  for(let age=Math.ceil(a0/xs)*xs;age<a0+H;age+=xs)c.fillText(String(age),L+bw*(age-a0+.5),T+ph+6);
+  for(let t=1;t<=H;t++){const x=L+bw*(t-1)+bw*.14,bwi=Math.max(1,bw*.72);let u=0,d=0;
+    for(const [k,,col,sg] of used){const v=val(k,t);if(v<=0)continue;c.fillStyle=tok(col);c.globalAlpha=hoverT==null||hoverT===t?1:.55;
+      if(sg>0){c.fillRect(x,Y(u+v),bwi,Y(u)-Y(u+v));u+=v;}else{c.fillRect(x,Y(-d),bwi,Y(-d-v)-Y(-d));d+=v;}}
+  }
+  c.globalAlpha=1;c.strokeStyle=tok("--ink");c.lineWidth=1.2;c.beginPath();c.moveTo(L,Math.round(Y(0))+.5);c.lineTo(L+pw,Math.round(Y(0))+.5);c.stroke();
+  flowGeom={L,pw,bw,H,used,val};
+}
+function hoverFlow(e){
+  if(!R||!flowGeom)return;const cv=$("flow"),b=cv.getBoundingClientRect(),g=flowGeom,x=e.clientX-b.left,t=Math.floor((x-g.L)/g.bw)+1,tip=$("tip2");
+  if(t<1||t>g.H){tip.hidden=true;drawFlow();return;}
+  let net=0;const rows=g.used.map(([k,l,,sg])=>{const v=g.val(k,t);net+=sg*v;return v>0?`<div><span>${l}</span><b>${sg<0?"−":""}${eur(v)}</b></div>`:"";}).join("");
+  tip.innerHTML=`<div class="t">Age ${R.plan.a0+t-1}</div>${rows}<div><span>${net<0?"From savings":"Saved"}</span><b>${eur(Math.abs(net))}</b></div>`;
+  tip.hidden=false;tip.style.left=Math.max(0,Math.min(x+12,b.width-190))+"px";tip.style.top="8px";drawFlow(t);
+}
+$("flow").addEventListener("mousemove",hoverFlow);
+$("flow").addEventListener("mouseleave",()=>{$("tip2").hidden=true;if(R)drawFlow();});
+function renderAngel(){
+  const card=$("angelCard"),a=R.ang;if(!M.angel||!a.on||a.invested<=0){card.hidden=true;return;}card.hidden=false;
+  const P=R.P,bins=[[0,.25],[.25,.5],[.5,.75],[.75,1],[1,1.5],[1.5,2],[2,3],[3,5],[5,Infinity]],cnt=bins.map(()=>0);
+  let lose=0,big=0;for(let p=0;p<P;p++){const m=a.mult[p];if(m<1)lose++;if(a.big[p])big++;for(let j=0;j<bins.length;j++)if(m>=bins[j][0]&&m<bins[j][1]){cnt[j]++;break;}}
+  const med=qAt(Float64Array.from(a.mult).sort(),.5);
+  const {c,w,h}=setup($("angelHist")),L=10,Rt=10,T=18,B=26,pw=w-L-Rt,ph=h-T-B,bw=pw/bins.length,mx=Math.max(...cnt,1);
+  c.textAlign="center";
+  bins.forEach(([lo,hi],j)=>{const bh=ph*cnt[j]/mx,x=L+j*bw;c.fillStyle=tok(lo<1?"--bad":"--good");c.globalAlpha=.8;c.fillRect(x+bw*.12,T+ph-bh,bw*.76,bh);c.globalAlpha=1;
+    c.fillStyle=tok("--muted");c.font=monoFont(11);c.textBaseline="top";c.fillText(hi===Infinity?"5×+":`${lo}–${hi}×`,x+bw/2,T+ph+6);
+    c.textBaseline="bottom";c.fillStyle=tok("--ink");if(cnt[j])c.fillText(pct(cnt[j]/P),x+bw/2,T+ph-bh-3);});
+  const dealsTxt=`${a.deals} companies`;
+  $("astats").innerHTML=[[eur(a.invested),`invested in ${dealsTxt} (future €)`],[med.toFixed(2)+"×","typical multiple returned"],[pct(lose/P),"of futures lose money overall"],[pct(big/P),"catch at least one 10× winner"]]
+    .map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join("");
+}
+function renderLevers(){
+  const lev=R.lev.slice().sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta)),mx=Math.max(.05,...lev.map(x=>Math.abs(x.delta)));
+  $("levers").innerHTML=lev.map(x=>{const pts=Math.round(x.delta*100),wd=Math.abs(x.delta)/mx*50,col=x.delta>=0?"var(--good)":"var(--bad)";
+    return `<div class="lever"><span>${esc(x.label)}</span><div class="track"><span class="mid"></span><span class="bar" style="${x.delta>=0?`left:50%`:`right:50%`};width:${wd.toFixed(1)}%;background:${col}"></span></div><b>${pts>0?"+":pts<0?"−":"±"}${Math.abs(pts)} pts</b></div>`;}).join("")||`<p class="note">No levers apply to these numbers.</p>`;
+}
+
+// ===== Plan as text for an AI assistant =====
+function untilMe(){const a=+M.people.a.age,b=+M.people.b.age;return b<a?`until my partner is ${M.planTo}`:b>a?`until I am ${M.planTo}`:`until we are both ${M.planTo}`;}
+function planText(){
+  const r=R,plan=r.plan,kv=r.kv,ag=v=>v===ret?`${M.retireAge} (when I stop work)`:String(v),L=[];
+  const upto=to=>to==null?"for life":"until "+ag(to);
+  L.push("I'm checking my retirement plan with a Monte Carlo planner. Amounts are in euros per year, after tax, in today's money unless noted.");
+  L.push("I live in [country].","");
+  L.push(`Ages: me ${plan.a0}, partner ${plan.b0}. I plan to stop work at ${M.retireAge}. The plan runs ${untilMe()}.`);
+  L.push("Income:");
+  for(const s of M.income)if(+s.amount>0)L.push(`- ${s.label}: ${eurFull(s.amount)} from age ${ag(s.from)}${s.who==="b"?" (partner's age)":""}, ${upto(s.to)}`+
+    (s.kind==="royalty"?`; typical change ${s.growth}% a year, swings about ${s.vol}%`:+s.growth?`; ${s.growth>0?"+":""}${s.growth}% a year above inflation`:""));
+  L.push("Spending:");
+  for(const s of M.spending)if(+s.amount>0)L.push(`- ${s.label}: ${eurFull(s.amount)} from age ${ag(s.from)}, ${upto(s.to)}`);
+  L.push("Savings and investments:");
+  for(const b of M.buckets)if(+b.amount>0)L.push(`- ${b.label}: ${eurFull(b.amount)} in ${CLASSES[b.cls].name.toLowerCase()}`+
+    (b.locked!=null?`, locked until ${ag(b.locked)}${+b.you?`; I add ${eurFull(b.you)} a year`:""}${+b.employer?`; employer adds ${eurFull(b.employer)} a year`:""}`:""));
+  if(M.property.length){L.push("Property:");for(const q of M.property)L.push(`- ${q.label}: worth ${eurFull(q.value)}${+q.rent?`, rent after costs ${eurFull(q.rent)} a year`:""}${+q.mortgage?`, mortgage ${eurFull(q.mortgage)} a year (fixed) until age ${q.mortgageEnd}`:""}${q.sellAt!=null?`, to be sold at ${q.sellAt}`:""}`);}
+  if(M.angel)L.push(`Angel investing: ${eurFull(M.angel.existing)} already in ${M.angel.count} start-ups; ${M.angel.perYear} new cheques a year of ${eurFull(M.angel.ticket)} for ${M.angel.years} years.`);
+  L.push(`Assumptions: inflation ${M.inflation}% a year; fees and taxes on returns ${M.drag}% a year. Average yearly returns before inflation: ${LIQUID_CLASSES.map(k=>`${CLASSES[k].name.toLowerCase()} ${M.market[k].mu}% (swings ${M.market[k].sd}%)`).join("; ")}.`);
+  L.push("",`Results from ${r.P.toLocaleString("en-GB")} simulated futures:`);
+  L.push(`- Chance my savings last ${untilMe()}: ${pct(r.main.success)}`);
+  L.push(`- Typical savings at ${kv.mAge}: ${eur(kv.mid)} (1 in 10 futures below ${eur(kv.lo)}, 1 in 10 above ${eur(kv.hi)})`);
+  if(isFinite(r.sus))L.push(`- Spending that still lasts in 9 of 10 futures: about ${eurFull(Math.round(r.sus*kv.sp1/12/50)*50)} a month (${Math.round(r.sus*100)}% of planned spending)`);
+  L.push(`- In the worst 1 in 10 futures: ${isFinite(kv.d10)?`savings run out at about ${Math.round(kv.d10)}`:"savings still last to the end of the plan"}`);
+  const top=r.lev.slice().sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta)).slice(0,4);
+  if(top.length)L.push(`- Biggest levers: ${top.map(x=>`${x.label} (${x.delta>=0?"+":"−"}${Math.abs(Math.round(x.delta*100))} points)`).join("; ")}`);
+  L.push("","Please: (1) tell me whether these assumptions look realistic for someone in my country and situation; (2) say which of them matter most and how I can check them; (3) suggest three concrete changes that would make the plan sturdier, with the trade-offs of each. Use plain language, list your own assumptions, and don't recommend specific products.");
+  return L.join("\n");
+}
+// Copy buttons: clipboard when allowed, otherwise select the text so it can be copied by hand
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".copy");if(!b)return;
+  const target=b.id==="copyPlan"?$("planText"):b.parentElement.querySelector(".q");if(!target)return;
+  const text=target.value!=null?target.value:target.textContent,label=b.dataset.label||b.textContent;b.dataset.label=label;
+  const done=msg=>{b.textContent=msg;setTimeout(()=>{b.textContent=label;},1800);};
+  const fallback=()=>{try{if(target.select){target.focus();target.select();}else{const rg=document.createRange();rg.selectNodeContents(target);const sel=getSelection();sel.removeAllRanges();sel.addRange(rg);}}catch(_){}done("Selected, copy it");};
+  try{navigator.clipboard.writeText(text).then(()=>done("Copied"),fallback);}catch(_){fallback();}
+});
+let showSamples=false;
+$("samples").addEventListener("click",()=>{showSamples=!showSamples;$("samples").setAttribute("aria-pressed",showSamples);$("samples").textContent=showSamples?"Hide sample futures":"Show 5 sample futures";$("lgSamples").hidden=!showSamples;if(R)drawFan();});
+
+// ===== Theme + resize redraws =====
+function redraw(){if(R){renderTimeline();drawFan();drawSurv();drawFlow();renderAngel();}}
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(redraw,120);});
+try{window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redraw);}catch(e){}
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(redraw);
+
+// ===== Boot =====
+M=load(cur)||example(cur);
+renderHeader();renderForm();compute();
+})();
+</script>
+</body>
+</html>

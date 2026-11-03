@@ -1,0 +1,91 @@
+# Retirement Map
+
+A retirement planner that runs in the browser. It plays out 2,000 possible futures for a household's savings, then shows four things:
+- the chance the money lasts;
+- what spending holds up;
+- where the money sits;
+- which decisions move the result most.
+
+It comes with three example households built from reasonable assumptions. Anyone can type their own numbers over them.
+
+| File | Opens on |
+|---|---|
+| `index.html` | All three households, with tabs |
+| `one-salary-two-homes.html` | A single high earner, a partner who runs the household, a main home with a mortgage and a paid-off second home |
+| `living-on-royalties.html` | A household living mainly on royalties from creative work, about €1M saved, a paid-off home |
+| `angel-investor.html` | A tech angel writing small start-up cheques, with example sizes of €1M, €5M and €30M |
+
+Each page is one self-contained HTML file with no build step needed to open it.
+
+Every page also teaches the method:
+- **Start here:** three steps for using the page, and why the exercise is worth doing.
+- **Sample futures:** a button on the savings chart draws five individual simulated futures.
+- **How this works, in plain words** (an expandable box at the top of the page):
+  - what a Monte Carlo simulation is;
+  - why an average return misleads;
+  - how to read the chart;
+  - what a "90% chance" means;
+  - which numbers matter most;
+  - what the model leaves out.
+- **Six ideas that matter for any retirement:** today's euros, the withdrawal gap, bad years early, fees, the price of safety, and wealth you can't spend.
+- **Questions to ask an AI assistant:**
+  - questions written for each household, plus general ones, each with a copy button;
+  - a "Your plan, ready to paste" box that turns the reader's own numbers and results into a prompt.
+
+## Sharing
+
+- **Online:** <https://eloquentix.github.io/retirement-map/>, with each household also on its own page
+  (`one-salary-two-homes.html`, `living-on-royalties.html`, `angel-investor.html`).
+- **As an attachment:** send the single `.html` file. It opens in any browser, offline too.
+- **Privacy:**
+  - Numbers people type are saved only in their own browser (`localStorage`).
+  - The pages make no network requests and use system fonts. Each page carries a Content-Security-Policy that
+    blocks all network access and allows no script but its own.
+  - The plan text reaches the clipboard only when the reader presses "Copy plan".
+- **Security:** saved numbers are treated as untrusted. They are rebuilt on top of the example, so only numbers in a
+  sensible range and the allowed choices are kept. See [SECURITY.md](SECURITY.md).
+
+## Editing
+
+The source is `src/retirement-map.html`. After changing it, regenerate the four pages:
+
+```sh
+node build.mjs
+```
+
+Each household is defined in the `PERSONAS` object in the source:
+- its story, assumptions, risks and ideas;
+- the "what moves the needle" levers;
+- its numbers: income streams, spending items, savings buckets, property and angel settings.
+
+## The model
+
+- **Yearly steps:** flows land at year end. Spending, pensions and rents rise with inflation. Mortgage payments are fixed in euros.
+- **Returns:** each asset type has its own random yearly return, drawn from a log-normal distribution. Asset types move together through a correlation matrix. Savings are rebalanced every year. A fee and tax drag is subtracted from every return.
+
+  | Asset type | Avg return | Yearly swing (1σ) |
+  |---|---|---|
+  | Cash and deposits | 2.0% | 1% |
+  | Bonds and guaranteed funds | 3.0% | 5% |
+  | Local-currency bonds and deposits (in €) | 4.5% | 8% |
+  | Global stock funds | 8.0% | 17% |
+  | Single and local stocks | 9.0% | 26% |
+  | Property prices | 2.5% | 8% |
+
+  These are nominal euro figures, and all of them can be edited on the page.
+- **Locked savings:** workplace and private pension plans grow separately and join usable savings at their unlock age. Before that they cannot pay bills.
+- **Property:** homes are not counted as savings. Rents count as income. Selling a property pays its price minus 6% costs and any mortgage left into savings.
+- **Royalties:** the level drifts by the stated yearly change and takes random shocks that persist from year to year.
+- **Angel cheques:** each cheque gets a random multiple and an exit 3–10 years later. There are two outcome profiles:
+  - **Typical small-ticket:** 60% return 0×, 12% return 0.5×, 10% return 1×, 11% return 3×, 5% return 10× and 2% return 30×. That averages 1.59×.
+  - **Selective with follow-ons:** averages 2.40×.
+- **Results:**
+  - *Chance the savings last:* the share of futures where usable savings never run out before the younger partner reaches the plan age.
+  - *Spending that holds up:* the largest scaling of planned spending that still lasts in 9 of 10 futures.
+  - *What moves the needle:* re-runs the same futures with one change at a time.
+- **Fixed random seed:** the same futures are reused each time, so a change in the result comes from the change in the inputs.
+
+This is an educational illustration, not financial, tax or legal advice.
+
+Licensed under the [MIT License](LICENSE). A US-focused companion with tax rules, Social Security and real
+market history is [Outlast](https://github.com/eloquentix/outlast).
