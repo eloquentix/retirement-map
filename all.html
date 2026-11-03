@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-TUkDhZVkE2HCq6OfU1UT+puiQwyhjcdS+75ZcIOs084='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-KbqJmgbk3K00cDHxWsBh31q2NuxdqBeI3rMsMzE3t/U='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Retirement Map</title>
 <style>
 /* Layout: a route map. A metro-style line of life "stations" runs across the top, the household's numbers sit in a left rail, charts on the right, lessons below. */
@@ -748,8 +748,55 @@ angel:{
         {id:"rentals",label:"Rental property portfolio",short:"Rentals",value:5000000,home:false,rent:200000,mortgage:0,mortgageEnd:0,rate:0,sellAt:null}],
       angel:{existing:1500000,count:60,perYear:12,ticket:25000,years:10,profile:"novice"}}
   }
+},
+indie:{
+  tab:"Independent developer",
+  title:"Independent developer",
+  lede:"A senior developer billing through a PFA or micro-SRL — crypto, stocks, bonds and property scattered across years of ad hoc decisions, and a state pension built on minimal contributions.",
+  story:`<p>You've been independent for years — a PFA or a small SRL, billing clients directly or through a firm you work with. No employer, no HR department enrolling you in anything, no automatic pension contributions. What you have instead has built up on its own: a home with a small mortgage, a crypto wallet or three from a few market cycles, stocks and ETFs bought across a handful of broker apps, some government bonds, cash spread over a few banks. It adds up to a real number, but it's scattered, and <strong>no one has ever looked at it as one picture</strong>.</p>
+<p>Most PFAs and micro-SRLs declare close to the legal minimum for social contributions, which keeps more cash in hand now — and means a thin state pension later. For a household like this, <strong>savings and investments are the retirement plan</strong>, not a supplement to one.</p>`,
+  assumptions:[
+    "Billing income through a PFA or small SRL, after tax and social contributions: about €50k a year, rising slowly.",
+    "Partner employed on payroll: about €26k a year after tax, with normal pension contributions.",
+    "State pension: about €100 a month for you, reflecting years of contributions kept near the legal minimum; about €350 a month for your partner, who was on payroll throughout.",
+    "Spending: €34k a year for the household, plus €5k a year for health and care from 80.",
+    "Savings of about €133k: cash in a few banks, crypto across several wallets and exchanges, stocks and ETFs in a few broker apps, and some government bonds. A voluntary private pension (Pillar III) exists but hasn't been funded yet.",
+    "A home with a small mortgage, paid off at 58. Prices rise 4% a year here — set this to whatever you actually see."],
+  risks:[
+    {lvl:"high",t:"Your state pension was built on minimal contributions",p:"Many PFAs and micro-SRLs declare close to the smallest income the law allows, to keep CAS and CASS payments low. That's a rational choice year to year, but it compounds into a very small state pension. Pull your actual contribution history rather than guessing what it adds up to."},
+    {lvl:"high",t:"No employer, no safety net",p:"There's no severance, no unemployment cover built for the self-employed, and no sick pay. A lost client or a slow stretch hits savings directly — try “Billing stops at 55” below."},
+    {lvl:"medium",t:"Scattered and untracked",p:"Cash in a few banks, crypto in several wallets, stocks in a few apps: it's a real number, but almost no one who holds money this way actually knows their total or their real mix. Once a year, pull it all into one list."},
+    {lvl:"medium",t:"Crypto swings harder than anything else here",p:"This plan gives crypto a much wider range of outcomes than stocks or bonds. Open “Markets, inflation and fees” below and see what a bad year actually does to it."},
+    {lvl:"low",t:"The private pension sits empty",p:"A Pillar III account exists on paper for many independent professionals but never gets funded. It's the one bucket here worth switching on before anything else, since it's the only slice of this plan built to survive you stopping work."}],
+  ideas:[
+    "Pull your real CAS/CASS contribution history and get an honest pension estimate — don't assume; the number is usually smaller than people expect.",
+    "Once a year, list every account, wallet and app in one place with today's value. The exercise itself usually matters more than the spreadsheet.",
+    "Fund the voluntary private pension, even a small fixed amount a month. It's the only part of this plan that exists specifically because the state pension won't be enough.",
+    "Size crypto like a sleeve, not a plan: decide the share of savings it's allowed to be, and rebalance back to it instead of letting one good year quietly turn it into most of your wealth.",
+    "Keep 6 to 12 months of billing as cash. Without severance or unemployment cover, that buffer is what keeps a slow quarter from becoming a forced sale."],
+  levers:["retireLater","retireEarlier","incomeStops55","spendLess","moreStocks","marketsWeaker","lowerFees"],
+  extraClasses:[{key:"crypto",name:"Crypto",color:"#8a6fb0",mu:12,sd:65,corr:{cash:0,bonds:0,lcy:0.05,world:0.3,local:0.2,prop:0}}],
+  base:{
+    people:{a:{age:42},b:{age:40}},retireAge:65,planTo:95,inflation:4.0,drag:0.6,
+    income:[
+      {id:"bill",label:"Billing income through a PFA or micro-SRL, after tax and social contributions",kind:"work",who:"a",amount:50000,from:42,to:ret,growth:1,vol:0},
+      {id:"sal",label:"Partner's salary, after tax",kind:"work",who:"b",amount:26000,from:40,to:ret,growth:0.5,vol:0},
+      {id:"penA",label:"State pension (you), built on minimal contributions",short:"Your thin pension starts",kind:"pension",who:"a",amount:1200,from:65,to:null,growth:0,vol:0},
+      {id:"penB",label:"State pension (partner), paid as an employee",short:"Partner's pension starts",kind:"pension",who:"b",amount:4200,from:65,to:null,growth:0,vol:0}],
+    spending:[
+      {id:"live",label:"Household",amount:34000,from:42,to:null},
+      {id:"care",label:"Health and care later in life",short:"Care costs begin",amount:5000,from:80,to:null}],
+    buckets:[
+      {id:"cash",label:"Cash across a few banks",cls:"cash",amount:18000},
+      {id:"crypto",label:"Crypto, across several wallets and exchanges",cls:"crypto",amount:35000},
+      {id:"etf",label:"Stocks and ETFs, across a few broker apps",cls:"world",amount:65000},
+      {id:"gov",label:"Government bonds",cls:"lcy",amount:15000},
+      {id:"p3",label:"Voluntary private pension (Pillar III)",short:"Private pension not started",cls:"world",amount:0,locked:60,you:0,employer:0,until:null}],
+    property:[
+      {id:"home",label:"Home, with a small mortgage",short:"Home",value:150000,home:true,rent:0,mortgage:6000,mortgageEnd:58,rate:4.5,sellAt:null}],
+    angel:null}
 }};
-const ORDER=["twohomes","royalties","angel"];
+const ORDER=["twohomes","royalties","angel","indie"];
 
 // ===== Questions to take to an AI assistant =====
 const GENERAL_ASK=[
@@ -777,7 +824,13 @@ const ASK={
     "Given my age, spending and liquid wealth, what share of my net worth should sit in illiquid start-up stakes?",
     "How should I size follow-on reserves, and when should I stop following on in a company?",
     "How can I keep simple records of my angel portfolio and value it once a year?",
-    "How are gains and losses on start-up investments taxed in [country], and can losses offset gains?"]
+    "How are gains and losses on start-up investments taxed in [country], and can losses offset gains?"],
+  indie:[
+    "I bill through a PFA/micro-SRL in Romania and have mostly kept CAS and CASS near the legal minimum. How do I pull my real contribution history, and roughly what state pension does that path lead to?",
+    "Compare a voluntary Pillar III pension with just investing the same monthly amount myself — fees, tax treatment and what happens if I stop contributing for a year.",
+    "I hold crypto, stocks and bonds across several apps and wallets with no single view. Walk me through a simple way to track total net worth and allocation once a year.",
+    "As a PFA or micro-SRL owner with no employer, how much should I keep as a cash buffer for a slow quarter, and how do I rebuild it after using it?",
+    "If I keep money inside a micro-SRL instead of taking it out as salary or dividends, how does that change my retirement savings and my tax bill, in Romania specifically?"]
 };
 
 // ===== What-if levers (each edits a copy of the model) =====
@@ -808,7 +861,23 @@ const KEY="retmap:v1:";
 const hashId=location.hash.slice(1);
 let cur=ONLY||(ORDER.includes(hashId)?hashId:ORDER[0]);
 let M=null,R=null,units="real";
-function example(id,tier){const p=PERSONAS[id];let m;if(p.tiers){const t=tier&&p.tiers[tier]?tier:p.defaultTier;m=clone(p.tiers[t]);m.tier=t;}else m=clone(p.base);m.v=1;m.classes=defaultClasses();m.market=defaultMarket(m);m.corr=defaultCorr();return m;}
+// Lets a persona start with an extra asset class beyond the default five (e.g. crypto for the
+// independent-developer archetype), using the same insert-before-"prop" splice as addClass().
+function seedClass(m,c){
+  const L=m.classes.length,priorKeys=m.classes.map(x=>x.key);
+  m.classes.push({key:c.key,name:c.name,color:c.color});
+  m.market[c.key]={mu:c.mu,sd:c.sd};
+  for(let i=0;i<m.corr.length;i++){
+    const otherKey=i<priorKeys.length?priorKeys[i]:"prop";
+    m.corr[i].splice(L,0,(c.corr&&c.corr[otherKey]!=null)?c.corr[otherKey]:0.2);
+  }
+  const newRow=m.corr[0].map(()=>0.2);
+  priorKeys.forEach((k,i)=>{newRow[i]=(c.corr&&c.corr[k]!=null)?c.corr[k]:0.2;});
+  if(c.corr&&c.corr.prop!=null)newRow[newRow.length-1]=c.corr.prop;
+  newRow[L]=1;
+  m.corr.splice(L,0,newRow);
+}
+function example(id,tier){const p=PERSONAS[id];let m;if(p.tiers){const t=tier&&p.tiers[tier]?tier:p.defaultTier;m=clone(p.tiers[t]);m.tier=t;}else m=clone(p.base);m.v=1;m.classes=defaultClasses();m.market=defaultMarket(m);m.corr=defaultCorr();if(p.extraClasses)for(const c of p.extraClasses)seedClass(m,c);return m;}
 // "until your partner is 95" / "until you are 95" / "until you are both 95"
 function untilTxt(){const a=+M.people.a.age,b=+M.people.b.age;return b<a?`until your partner is ${M.planTo}`:b>a?`until you are ${M.planTo}`:`until you are both ${M.planTo}`;}
 // Saved numbers come back from browser storage, which other pages on the same site could also write. So a saved
