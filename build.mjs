@@ -11,7 +11,7 @@ const src = readFileSync(SRC, "utf8");
 
 const pages = [
   { file: "all.html", only: null, title: "Retirement Map" },
-  { file: "plan.html", only: "twohomes", title: "One Salary, Two Homes" },
+  { file: "homes.html", only: "twohomes", title: "One Salary, Two Homes" },
   { file: "artist.html", only: "royalties", title: "Living on Royalties" },
   { file: "angels.html", only: "angel", title: "Angel Investor Map" },
 ];

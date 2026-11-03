@@ -3,10 +3,11 @@
 #   ./deploy.sh
 #
 # Shares a deploy target with the sibling project in dev/finance/monteCarlo/claude: same
-# apps.eloquentix.com/radu/mc/ folder, same radu-deploy host. This repo now owns all four
-# pages there (all.html, angels.html, artist.html, plan.html) — plan.html used to be the
-# sibling project's own EN|FR single-file product; it was retired in favor of this repo's
-# one-salary-two-homes persona under the same URL.
+# apps.eloquentix.com/radu/mc/ folder, same radu-deploy host. This repo owns all.html,
+# angels.html and artist.html there. plan.html is the sibling project's own EN|FR
+# single-file product (legacy, hand-maintained, deployed from its own deploy.sh) — never
+# touched by this script. homes.html (one-salary-two-homes) builds locally but isn't
+# published; it's considered legacy here too.
 #
 # Uses the `radu-deploy` host from ~/.ssh/config (key: id_ed25519_eloquentix),
 # so it does not depend on ssh-agent state.
@@ -21,7 +22,7 @@ cd "$ROOT"
 echo "▸ building pages…"
 node build.mjs
 
-PAGES=(all.html angels.html artist.html plan.html)
+PAGES=(all.html angels.html artist.html)
 
 echo "▸ ensuring remote dir…"
 ssh "$HOST" "mkdir -p $REMOTE"
