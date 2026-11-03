@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-XyEnca3vX8vFHRG1sIpRd3r4TGwr39ZEhAPPRe2zRso='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-ftJaz3z+q85OsEkhE1wkMtFf8KQNhKqw/6w/DBaCzxE='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>One Salary, Two Homes</title>
 <style>
 /* Layout: a route map. A metro-style line of life "stations" runs across the top, the household's numbers sit in a left rail, charts on the right, lessons below. */
@@ -117,6 +117,11 @@ details.sec[open]>summary::after{content:"–"}
 .item{display:grid;gap:6px;padding-block:9px;border-top:1px dashed var(--line)}
 .item:first-child{border-top:0}
 .item-label{font-weight:700;font-size:13.5px;line-height:1.35}
+details.subsec{margin-top:6px;border-top:1px dashed var(--line);padding-top:4px}
+details.subsec>summary{cursor:pointer;list-style:none;font-size:12px;font-weight:700;color:var(--faint)}
+details.subsec>summary::-webkit-details-marker{display:none}
+details.subsec .item{opacity:.6}
+details.subsec .item-label::after{content:" — not using";font-weight:400;font-size:11px;color:var(--faint)}
 .fields{display:flex;flex-wrap:wrap;gap:8px}
 .fld{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);flex:1 1 92px;min-width:0}
 .fld input,.fld select{width:100%;min-width:0;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:14px;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -892,6 +897,21 @@ function fAge(path,cap,who){const v=getP(path);
 function fSel(path,cap,opts){const v=getP(path);return `<label class="fld"><span>${cap}</span><select id="${idOf(path)}" data-path="${path}">${opts.map(([k,l])=>`<option value="${k}"${k===v?" selected":""}>${esc(l)}</option>`).join("")}</select></label>`;}
 const item=(label,fields,extra="")=>`<div class="item"><div class="item-label">${esc(label)}</div><div class="fields">${fields.join("")}</div>${extra}</div>`;
 const sec=(title,body,open=true)=>`<details class="sec"${open?" open":""}><summary>${title}</summary><div class="sec-body">${body}</div></details>`;
+// Savings items at €0 sink into a collapsed "not using" group below the active ones, so a
+// household that doesn't have e.g. a pension doesn't have to scroll past an empty line for it.
+function bucketItem(b,i){
+  const fields=[fNum(`buckets.${i}.amount`,"€ now",{min:0,step:1000}),fSel(`buckets.${i}.cls`,"invested in",M.classes.map(c=>[c.key,c.name]))]
+    .concat(b.locked!=null?[fAge(`buckets.${i}.locked`,"locked until age","a"),fNum(`buckets.${i}.you`,"you add / yr",{min:0,step:500}),fNum(`buckets.${i}.employer`,"employer adds / yr",{min:0,step:500})]:[]);
+  const action=(+b.amount>0)
+    ?`<button type="button" class="link" data-bucket-zero="${i}">Not using this</button>`
+    :`<button type="button" class="link" data-bucket-restore="${i}">Use this</button>`;
+  return item(b.label,fields,`<p class="hint">${action}</p>`);
+}
+function bucketsSection(){
+  const active=[],off=[];
+  M.buckets.forEach((b,i)=>{(+b.amount>0?active:off).push(bucketItem(b,i));});
+  return active.join("")+(off.length?`<details class="subsec"><summary>Not using (${off.length})</summary>${off.join("")}</details>`:"");
+}
 // How each pair of asset classes (plus property) moves together. Only the upper triangle
 // is editable; the lower triangle mirrors it, since both sides must agree for the maths.
 function corrGrid(){
@@ -920,9 +940,7 @@ function renderForm(){
     .concat(s.kind==="royalty"?[fNum(`income.${i}.growth`,"change % / yr",{min:-30,max:30,step:.5}),fNum(`income.${i}.vol`,"swings %",{min:0,max:80,step:1})]:s.kind==="work"?[fNum(`income.${i}.growth`,"raise % / yr",{min:-10,max:10,step:.5})]:[]))).join(""));
   h+=sec("Spending",M.spending.map((s,i)=>item(s.label,[fNum(`spending.${i}.amount`,"€ per year",{min:0,step:500}),fAge(`spending.${i}.from`,"from age","a"),fAge(`spending.${i}.to`,"until age","a")],
     `<span class="hint">≈ <span class="mo" data-mo="spending.${i}.amount"></span> a month</span>`)).join(""));
-  const classOpts=M.classes.map(c=>[c.key,c.name]);
-  h+=sec("Savings and investments",M.buckets.map((b,i)=>item(b.label,[fNum(`buckets.${i}.amount`,"€ now",{min:0,step:1000}),fSel(`buckets.${i}.cls`,"invested in",classOpts)]
-    .concat(b.locked!=null?[fAge(`buckets.${i}.locked`,"locked until age","a"),fNum(`buckets.${i}.you`,"you add / yr",{min:0,step:500}),fNum(`buckets.${i}.employer`,"employer adds / yr",{min:0,step:500})]:[]))).join(""));
+  h+=sec("Savings and investments",bucketsSection());
   h+=sec("Homes and property",M.property.map((q,i)=>item(q.label,[fNum(`property.${i}.value`,"value €",{min:0,step:5000}),fNum(`property.${i}.rent`,"rent after costs / yr",{min:0,step:500})]
     .concat((+q.mortgage>0)?[fNum(`property.${i}.mortgage`,"mortgage € / yr",{min:0,step:100}),fNum(`property.${i}.mortgageEnd`,"paid off at age",{min:0,max:110})]:[])
     .concat([fNum(`property.${i}.sellAt`,"sell at age",{min:0,max:110,blank:true,ph:"keep"})]))).join("")+
@@ -985,12 +1003,22 @@ function removeClass(key){
   for(const b of M.buckets)if(b.cls===key)b.cls=fallback;
   save();renderForm();schedule();
 }
+// Remembers the last nonzero amount per bucket (this tab, this session only — not saved) so
+// "Use this" can bring a zeroed-out item back without retyping. Lost on reload; that's fine,
+// a reloaded €0 bucket is just a bucket the reader hasn't put a number into yet.
+const lastBucketAmt={};
+function zeroBucket(i){const b=M.buckets[i];if(!b)return;const k=cur+":"+(b.id!=null?b.id:i);if(+b.amount>0)lastBucketAmt[k]=+b.amount;b.amount=0;save();renderForm();schedule();}
+function restoreBucket(i){const b=M.buckets[i];if(!b)return;const k=cur+":"+(b.id!=null?b.id:i);b.amount=lastBucketAmt[k]>0?lastBucketAmt[k]:1000;save();renderForm();schedule();}
 $("form").addEventListener("click",e=>{const tb=e.target.closest("[data-tier]");
   if(tb){M=example(cur,tb.dataset.tier);save();renderForm();schedule(0);return;}
   if(e.target.id==="reset"){forget();M=example(cur,M.tier);renderForm();schedule(0);return;}
   if(e.target.closest("[data-add-class]")){addClass();return;}
   const rm=e.target.closest("[data-rm-class]");
-  if(rm){removeClass(rm.dataset.rmClass);return;}});
+  if(rm){removeClass(rm.dataset.rmClass);return;}
+  const bz=e.target.closest("[data-bucket-zero]");
+  if(bz){zeroBucket(+bz.dataset.bucketZero);return;}
+  const br=e.target.closest("[data-bucket-restore]");
+  if(br){restoreBucket(+br.dataset.bucketRestore);return;}});
 
 // ===== Header, story, tabs =====
 function renderHeader(){const p=PERSONAS[cur];

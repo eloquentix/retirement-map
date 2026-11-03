@@ -29,6 +29,7 @@ Every page also teaches the method:
   - which numbers matter most;
   - what the model leaves out.
 - **Six ideas that matter for any retirement:** today's euros, the withdrawal gap, bad years early, fees, the price of safety, and wealth you can't spend.
+- **Not using an item:** a savings item set to €0 (no pension, say) sinks into a collapsed "Not using" group below the active ones instead of cluttering the list — one click to bring it back.
 - **Questions to ask an AI assistant:**
   - questions written for each household, plus general ones, each with a copy button;
   - a "Your plan, ready to paste" box that turns the reader's own numbers and results into a prompt.
