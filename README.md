@@ -11,7 +11,7 @@ It comes with three example households built from reasonable assumptions. Anyone
 | File | Opens on |
 |---|---|
 | `all.html` | All three households, with tabs |
-| `one-salary-two-homes.html` | A single high earner, a partner who runs the household, a main home with a mortgage and a paid-off second home |
+| `plan.html` | A single high earner, a partner who runs the household, a main home with a mortgage and a paid-off second home |
 | `artist.html` | A household living mainly on royalties from creative work, about €1M saved, a paid-off home |
 | `angels.html` | A tech angel writing small start-up cheques, with example sizes of €1M, €5M and €30M |
 
@@ -35,8 +35,7 @@ Every page also teaches the method:
 ## Sharing
 
 - **Online:** <https://apps.eloquentix.com/radu/mc/all.html>, with each household also on its own page
-  (`angels.html`, `artist.html`; `one-salary-two-homes.html` is built but not published there yet).
-  Deployed with `./deploy.sh`.
+  (`angels.html`, `artist.html`, `plan.html`). Deployed with `./deploy.sh`.
 - **As an attachment:** send the single `.html` file. It opens in any browser, offline too.
 - **Privacy:**
   - Numbers people type are saved only in their own browser (`localStorage`).
