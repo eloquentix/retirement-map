@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-D6S8tSQxi1MStASF4rL/fgc5QhTSOEras5jPepB17jI=' 'sha256-pT7zIWEPwH6hedhBwwK6jrbVZaVIbSYedyoNNcu6e5w='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4S3wDROvqIDELw1RMHkuSBMPy0LrJaJGKPuEnDej/po=' 'sha256-2aTJ4phgNKEcG94f3OeoUuBJ0Wn8iE71ceorb6c68js='; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>Retirement Map</title>
 <style>
 /* Layout: a route map. A metro-style line of life "stations" runs across the top, the household's numbers sit in a left rail, charts on the right, lessons below. */
@@ -130,6 +130,11 @@ details.sec[open]>summary::after{content:"–"}
 .tbl th,.tbl td{padding:4px 6px;text-align:right}
 .tbl th:first-child,.tbl td:first-child{text-align:left}
 .tbl input{width:64px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:var(--mono);font-size:13px;color:var(--ink)}
+.tbl.corr th,.tbl.corr td{padding:2px 3px;font-size:11px}
+.tbl.corr th{font-weight:600;color:var(--muted)}
+.tbl.corr input{width:46px;padding:3px 4px;font-size:12px}
+.tbl.corr .corr-diag,.tbl.corr .corr-mirror{color:var(--faint);text-align:center}
+.swatch{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
 
 /* mix */
 .mixbar{display:flex;height:26px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
@@ -351,23 +356,38 @@ details.how .faq{padding:0 18px 18px;margin-top:0;border-top:1px dashed var(--li
 <script id="engine">
 "use strict";
 // ===== Simulation engine (pure functions, no DOM) =====
+// Built-in asset classes: defaults and the fallback registry used when migrating saved data
+// or seeding a brand-new custom class. "prop" (property price growth) is fixed — never
+// added, removed or reordered by the user; the other five are the editable starting set.
 const CLASSES={
-  cash:{name:"Cash and deposits",mu:2.0,sd:1.0},
-  bonds:{name:"Bonds and guaranteed funds",mu:3.0,sd:5.0},
-  lcy:{name:"Local-currency bonds and deposits",mu:4.5,sd:8.0},
-  world:{name:"Global stock funds",mu:8.0,sd:17.0},
-  local:{name:"Single and local stocks",mu:9.0,sd:26.0},
-  prop:{name:"Property prices",mu:2.5,sd:8.0}
+  cash:{name:"Cash and deposits",mu:2.0,sd:1.0,color:"var(--c-cash)"},
+  bonds:{name:"Bonds and guaranteed funds",mu:3.0,sd:5.0,color:"var(--c-bonds)"},
+  lcy:{name:"Local-currency bonds and deposits",mu:4.5,sd:8.0,color:"var(--c-lcy)"},
+  world:{name:"Global stock funds",mu:8.0,sd:17.0,color:"var(--c-world)"},
+  local:{name:"Single and local stocks",mu:9.0,sd:26.0,color:"var(--c-local)"},
+  prop:{name:"Property prices",mu:2.5,sd:8.0,color:"var(--c-prop)"}
 };
-const CK=["cash","bonds","lcy","world","local","prop"];
-const LIQUID_CLASSES=["cash","bonds","lcy","world","local"];
-const CORR=[
+const DEFAULT_KEYS=["cash","bonds","lcy","world","local","prop"];
+const DEFAULT_CORR=[
   [1,.10,.10,0,0,0],
   [.10,1,.40,.10,.05,.10],
   [.10,.40,1,.20,.30,.20],
   [0,.10,.20,1,.60,.30],
   [0,.05,.30,.60,1,.35],
   [0,.10,.20,.30,.35,1]];
+// Correlation to assume for a pair that has no saved value yet (e.g. one side is a newly
+// added class): known default pairs keep their calibrated figure, anything touching a
+// custom class starts at a neutral 0.2 and is meant to be edited.
+function defaultCorrOf(k1,k2){if(k1===k2)return 1;const i=DEFAULT_KEYS.indexOf(k1),j=DEFAULT_KEYS.indexOf(k2);return i>=0&&j>=0?DEFAULT_CORR[i][j]:0.2;}
+function defaultClasses(){return DEFAULT_KEYS.slice(0,5).map(k=>({key:k,name:CLASSES[k].name,color:CLASSES[k].color}));}
+function defaultCorr(){return DEFAULT_CORR.map(r=>r.slice());}
+const EXTRA_PALETTE=["#8a6fb0","#c2654f","#4f9d6e","#b08a3d","#5f7fae","#9a4f7a","#4f9d9d","#a8863d"];
+const CLASS_KEY_RE=/^[a-z][a-z0-9]{0,19}$/,CLASS_COLOR_RE=/^#[0-9a-f]{6}$/i,CLASS_VAR_RE=/^var\(--c-[a-z]+\)$/;
+// classKeys: every class index used by the engine, liquid classes in the model's own order
+// then "prop" last (the Monte Carlo draws array is laid out in this order).
+function classKeys(m){return m.classes.map(c=>c.key).concat(["prop"]);}
+function nameOf(m,key){if(key==="prop")return CLASSES.prop.name;const c=m.classes.find(x=>x.key===key);return c?c.name:key;}
+function colorOf(m,key){if(key==="prop")return CLASSES.prop.color;const c=m.classes.find(x=>x.key===key);return c?c.color:CLASSES.cash.color;}
 const ANGEL_PROFILES={
   novice:{name:"Typical small-ticket angel",out:[[0,.60],[.5,.12],[1,.10],[3,.11],[10,.05],[30,.02]],lag:[3,10]},
   seasoned:{name:"Selective angel with follow-ons",out:[[0,.50],[.5,.12],[1,.12],[3,.14],[10,.09],[30,.03]],lag:[3,10]}
@@ -376,10 +396,9 @@ const SALE_COST=0.06, SEED=20261103;
 
 function chol(A){const n=A.length,L=A.map(()=>new Array(n).fill(0));
   for(let i=0;i<n;i++)for(let j=0;j<=i;j++){let s=A[i][j];for(let k=0;k<j;k++)s-=L[i][k]*L[j][k];L[i][j]=i===j?Math.sqrt(Math.max(s,1e-12)):s/L[j][j];}return L;}
-const CHOL=chol(CORR);
 function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function normals(r){let spare=null;return()=>{if(spare!==null){const s=spare;spare=null;return s;}let u=0;while(u<1e-12)u=r();const v=r(),m=Math.sqrt(-2*Math.log(u));spare=m*Math.sin(2*Math.PI*v);return m*Math.cos(2*Math.PI*v);};}
-function defaultMarket(){const m={};for(const k of CK)m[k]={mu:CLASSES[k].mu,sd:CLASSES[k].sd};return m;}
+function defaultMarket(m){const out={};for(const k of classKeys(m)){const d=CLASSES[k];out[k]={mu:d?d.mu:4,sd:d?d.sd:15};}return out;}
 const ageVal=(v,m)=>v==="ret"?+m.retireAge:+v;
 
 // Turn the editable household model into year-by-year arrays. Year t runs from age a0+t-1 to a0+t; flows land at year end.
@@ -404,6 +423,7 @@ function resolve(m){
     for(let t=1;t<=H;t++)if(active(s.who,s.from,s.to,t)){const v=amt*infl[t]*Math.pow(1+g,t-1);inFixed[t]+=v;det[kind][t]+=v;}
   }
   for(const s of m.spending){const amt=+s.amount||0;if(amt<=0)continue;for(let t=1;t<=H;t++)if(active("a",s.from,s.to,t))spend[t]+=amt*infl[t];}
+  const CKm=classKeys(m),liquidCount=m.classes.length;
   const liquid=[],pots=[];
   for(const b of m.buckets){
     const amt=Math.max(0,+b.amount||0);
@@ -412,12 +432,12 @@ function resolve(m){
       if(ut<=1){liquid.push({cls:b.cls,amount:amt});continue;}
       const contrib=Z(),you=+b.you||0,emp=+b.employer||0;
       for(let t=1;t<=H;t++)if(t<ut&&(b.until==null||ageAt("a",t)<ageVal(b.until,m))){contrib[t]=(you+emp)*infl[t];outFixed[t]+=you*infl[t];det.save[t]+=you*infl[t];}
-      pots.push({v0:amt,ci:Math.max(0,CK.indexOf(b.cls)),ut,contrib});
+      pots.push({v0:amt,ci:Math.max(0,CKm.indexOf(b.cls)),ut,contrib});
     }else liquid.push({cls:b.cls,amount:amt});
   }
   let liquid0=0;for(const b of liquid)liquid0+=b.amount;
-  const w=new Float64Array(6);
-  if(liquid0>0){for(const b of liquid){const c=CK.indexOf(b.cls);w[c>=0&&c<5?c:0]+=b.amount/liquid0;}}else w[0]=1;
+  const w=new Float64Array(liquidCount);
+  if(liquid0>0){for(const b of liquid){const c=CKm.indexOf(b.cls);w[c>=0&&c<liquidCount?c:0]+=b.amount/liquid0;}}else w[0]=1;
   const props=[];
   for(const p of m.property){
     const sa=p.sellAt==null||p.sellAt===""?Infinity:+p.sellAt;
@@ -432,13 +452,14 @@ function resolve(m){
     props.push({v0:+p.value||0,saleT,bal,home:!!p.home});
   }
   if(m.angel&&(+m.angel.perYear||0)>0){const yrs=Math.min(+m.angel.years||0,H);for(let y=1;y<=yrs;y++){const v=m.angel.perYear*m.angel.ticket*infl[y];outFixed[y]+=v;det.angel[y]+=v;}}
-  return {a0,b0,H,infl,inFixed,spend,outFixed,rent,roy,pots,props,w,liquid0,drag:(+m.drag||0)/100,riskyShare:1-w[0],det};
+  const safeIdx=CKm.indexOf("cash"),riskyShare=1-(safeIdx>=0&&safeIdx<liquidCount?w[safeIdx]:0);
+  return {a0,b0,H,infl,inFixed,spend,outFixed,rent,roy,pots,props,w,liquid0,drag:(+m.drag||0)/100,riskyShare,classKeys:CKm,liquidCount,det};
 }
 
 // Correlated yearly returns for every asset class, plus royalty shocks. Fixed seed: same futures every run.
-function makeDraws(plan,P,market){
-  const H=plan.H,n=6,rc=new Float64Array(P*H*n),ms=new Float64Array(n),ss=new Float64Array(n);
-  CK.forEach((k,c)=>{const mu=market[k].mu/100,sd=Math.max(0,market[k].sd/100),s2=Math.log(1+sd*sd/((1+mu)*(1+mu)));ss[c]=Math.sqrt(s2);ms[c]=Math.log(1+mu)-s2/2;});
+function makeDraws(plan,P,market,keys,CHOL){
+  const H=plan.H,n=keys.length,rc=new Float64Array(P*H*n),ms=new Float64Array(n),ss=new Float64Array(n);
+  keys.forEach((k,c)=>{const mu=market[k].mu/100,sd=Math.max(0,market[k].sd/100),s2=Math.log(1+sd*sd/((1+mu)*(1+mu)));ss[c]=Math.sqrt(s2);ms[c]=Math.log(1+mu)-s2/2;});
   const nr=normals(rng(SEED)),e=new Float64Array(n);
   for(let p=0;p<P;p++)for(let t=0;t<H;t++){
     for(let c=0;c<n;c++)e[c]=nr();
@@ -471,7 +492,7 @@ function angelPlan(m,plan,P){
 
 // Play the futures forward. k scales the spending items; muShift lowers every risky return by that many points.
 function project(plan,draws,ang,o){
-  const P=o.P,k=o.k==null?1:o.k,ms=(o.muShift||0)/100,H=plan.H,n=6,rc=draws.rc,w=plan.w,drag=plan.drag,risky=plan.riskyShare;
+  const P=o.P,k=o.k==null?1:o.k,ms=(o.muShift||0)/100,H=plan.H,n=plan.classKeys.length,lc=plan.liquidCount,rc=draws.rc,w=plan.w,drag=plan.drag,risky=plan.riskyShare;
   const pots=plan.pots,props=plan.props,roy=plan.roy,np=pots.length,nq=props.length,nr=roy.length;
   const pv=new Float64Array(np),merged=new Uint8Array(np),vv=new Float64Array(nq),lv=new Float64Array(nr);
   const dep=new Float64Array(P),inv=o.record?new Float64Array(P*(H+1)):null;let ok=0;
@@ -484,12 +505,12 @@ function project(plan,draws,ang,o){
     for(let t=1;t<=H;t++){
       const off=(p*H+t-1)*n;
       for(let j=0;j<np;j++)if(!merged[j]&&t>=pots[j].ut){L+=pv[j];pv[j]=0;merged[j]=1;}
-      let rl=0;for(let c=0;c<5;c++)rl+=w[c]*rc[off+c];
+      let rl=0;for(let c=0;c<lc;c++)rl+=w[c]*rc[off+c];
       L*=1+rl-drag-ms*risky;
       for(let j=0;j<np;j++)if(!merged[j]){const ci=pots[j].ci;pv[j]=pv[j]*(1+rc[off+ci]-drag-(ci>0?ms:0))+pots[j].contrib[t];}
       let flow=plan.inFixed[t]+plan.rent[t]-k*plan.spend[t]-plan.outFixed[t]+ang.proc[p*H+t-1];
       for(let s=0;s<nr;s++){const R=roy[s];if(t>1)lv[s]*=Math.exp(R.g+R.sd*draws.rz[s][p*H+t-1]);flow+=R.base[t]*lv[s];}
-      for(let j=0;j<nq;j++){const pr=props[j];if(t<pr.saleT)vv[j]*=1+rc[off+5];else if(t===pr.saleT){vv[j]*=1+rc[off+5];flow+=vv[j]*(1-SALE_COST)-pr.bal;vv[j]=0;}}
+      for(let j=0;j<nq;j++){const pr=props[j];if(t<pr.saleT)vv[j]*=1+rc[off+lc];else if(t===pr.saleT){vv[j]*=1+rc[off+lc];flow+=vv[j]*(1-SALE_COST)-pr.bal;vv[j]=0;}}
       L+=flow;
       if(L<0){if(!failed){failed=true;dep[p]=plan.a0+t-1;}L=0;}
       if(inv){let s=L;for(let j=0;j<np;j++)if(!merged[j])s+=pv[j];inv[p*(H+1)+t]=s;}
@@ -782,7 +803,7 @@ const KEY="retmap:v1:";
 const hashId=location.hash.slice(1);
 let cur=ONLY||(ORDER.includes(hashId)?hashId:ORDER[0]);
 let M=null,R=null,units="real";
-function example(id,tier){const p=PERSONAS[id];let m;if(p.tiers){const t=tier&&p.tiers[tier]?tier:p.defaultTier;m=clone(p.tiers[t]);m.tier=t;}else m=clone(p.base);m.v=1;m.market=defaultMarket();return m;}
+function example(id,tier){const p=PERSONAS[id];let m;if(p.tiers){const t=tier&&p.tiers[tier]?tier:p.defaultTier;m=clone(p.tiers[t]);m.tier=t;}else m=clone(p.base);m.v=1;m.classes=defaultClasses();m.market=defaultMarket(m);m.corr=defaultCorr();return m;}
 // "until your partner is 95" / "until you are 95" / "until you are both 95"
 function untilTxt(){const a=+M.people.a.age,b=+M.people.b.age;return b<a?`until your partner is ${M.planTo}`:b>a?`until you are ${M.planTo}`:`until you are both ${M.planTo}`;}
 // Saved numbers come back from browser storage, which other pages on the same site could also write. So a saved
@@ -792,10 +813,56 @@ function untilTxt(){const a=+M.people.a.age,b=+M.people.b.age;return b<a?`until 
 const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const RANGE={age:[18,95],retireAge:[18,85],planTo:[60,110],inflation:[0,15],drag:[0,5],mu:[-5,25],sd:[0,60],growth:[-30,30],vol:[0,80],
   perYear:[0,60],years:[0,40],count:[0,1000],rate:[0,20],from:[0,120],to:[0,120],locked:[0,120],sellAt:[0,120],mortgageEnd:[0,120],until:[0,120]};
+// A custom asset class, its correlation row/column and its market entry are keyed by a
+// user-chosen name, so they can't be sanitized by the generic example-shaped field() below
+// (that only ever accepts values the example already has). These three validate directly
+// against raw storage; everything else keeps going through field()/pick().
+function sanitizeClasses(exClasses,saved){
+  if(!Array.isArray(saved))return exClasses;
+  const seen=new Set(["prop"]),out=[];
+  for(const s of saved){
+    if(out.length>=10)break;
+    if(!s||typeof s!=="object")continue;
+    const key=typeof s.key==="string"?s.key.toLowerCase():"";
+    if(!CLASS_KEY_RE.test(key)||seen.has(key))continue;
+    const name=typeof s.name==="string"?s.name.trim().slice(0,40):"";
+    if(!name)continue;
+    const color=typeof s.color==="string"&&(CLASS_COLOR_RE.test(s.color)||CLASS_VAR_RE.test(s.color))?s.color:EXTRA_PALETTE[out.length%EXTRA_PALETTE.length];
+    seen.add(key);out.push({key,name,color});
+  }
+  return out.length?out:exClasses;
+}
+function sanitizeMarket(liveClasses,saved){
+  const out={};
+  for(const key of liveClasses.map(c=>c.key).concat(["prop"])){
+    const def=CLASSES[key]||{mu:4,sd:15},s=saved&&typeof saved==="object"?saved[key]:undefined;
+    const mu=s&&typeof s.mu==="number"&&isFinite(s.mu)?Math.min(25,Math.max(-5,s.mu)):def.mu;
+    const sd=s&&typeof s.sd==="number"&&isFinite(s.sd)?Math.min(60,Math.max(0,s.sd)):def.sd;
+    out[key]={mu,sd};
+  }
+  return out;
+}
+function sanitizeCorr(liveClasses,saved){
+  const keys=liveClasses.map(c=>c.key).concat(["prop"]),n=keys.length;
+  const out=keys.map((k1,i)=>keys.map((k2,j)=>{
+    if(i===j)return 1;
+    const a=Array.isArray(saved)&&Array.isArray(saved[i])?saved[i][j]:undefined;
+    const b=Array.isArray(saved)&&Array.isArray(saved[j])?saved[j][i]:undefined;
+    const cand=typeof a==="number"&&isFinite(a)?a:(typeof b==="number"&&isFinite(b)?b:null);
+    return cand!=null?Math.min(1,Math.max(-1,cand)):defaultCorrOf(k1,k2);
+  }));
+  for(let i=0;i<n;i++)for(let j=0;j<i;j++)out[i][j]=out[j][i];
+  return out;
+}
 function sanitize(saved,id){
   const ex=example(id,typeof saved.tier==="string"&&PERSONAS[id].tiers&&has(PERSONAS[id].tiers,saved.tier)?saved.tier:undefined);
+  const liveClasses=sanitizeClasses(ex.classes,saved&&saved.classes);
+  const validCls=new Set(liveClasses.map(c=>c.key).concat(["prop"]));
   const field=(k,e,s)=>{
-    if(k==="cls")return typeof s==="string"&&has(CLASSES,s)?s:e;
+    if(k==="classes")return liveClasses;
+    if(k==="market")return sanitizeMarket(liveClasses,saved&&saved.market);
+    if(k==="corr")return sanitizeCorr(liveClasses,saved&&saved.corr);
+    if(k==="cls")return typeof s==="string"&&validCls.has(s)?s:e;
     if(k==="profile")return typeof s==="string"&&has(ANGEL_PROFILES,s)?s:e;
     if(e!==null&&typeof e==="object")return pick(e,s);
     if(typeof e!=="number"&&e!==null&&e!==ret)return e;
@@ -815,7 +882,6 @@ const getP=path=>path.split(".").reduce((o,k)=>o==null?o:o[k],M);
 function setP(path,v){const ks=path.split(".");let o=M;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];o[ks[ks.length-1]]=v;}
 
 // ===== Form =====
-const CLASS_OPTS=LIQUID_CLASSES.map(k=>[k,CLASSES[k].name]);
 function idOf(path){return "in-"+path.replace(/\./g,"-");}
 function fNum(path,cap,o={}){const v=getP(path);
   return `<label class="fld"><span>${cap}</span><input type="number" inputmode="decimal" id="${idOf(path)}" data-path="${path}" value="${v==null?"":esc(v)}"${o.min!=null?` min="${o.min}"`:""}${o.max!=null?` max="${o.max}"`:""} step="${o.step||1}"${o.blank?` data-blank="1" placeholder="${o.ph||"—"}"`:""}></label>`;}
@@ -826,7 +892,24 @@ function fAge(path,cap,who){const v=getP(path);
 function fSel(path,cap,opts){const v=getP(path);return `<label class="fld"><span>${cap}</span><select id="${idOf(path)}" data-path="${path}">${opts.map(([k,l])=>`<option value="${k}"${k===v?" selected":""}>${esc(l)}</option>`).join("")}</select></label>`;}
 const item=(label,fields,extra="")=>`<div class="item"><div class="item-label">${esc(label)}</div><div class="fields">${fields.join("")}</div>${extra}</div>`;
 const sec=(title,body,open=true)=>`<details class="sec"${open?" open":""}><summary>${title}</summary><div class="sec-body">${body}</div></details>`;
+// How each pair of asset classes (plus property) moves together. Only the upper triangle
+// is editable; the lower triangle mirrors it, since both sides must agree for the maths.
+function corrGrid(){
+  const keys=classKeys(M),names=keys.map(k=>nameOf(M,k)),n=keys.length;
+  let rows="";
+  for(let i=0;i<n;i++){
+    let cells=`<th>${esc(names[i])}</th>`;
+    for(let j=0;j<n;j++){
+      if(j<i)cells+=`<td class="corr-mirror">·</td>`;
+      else if(j===i)cells+=`<td class="corr-diag">1.00</td>`;
+      else cells+=`<td><input type="number" step="0.05" min="-1" max="1" data-corr="${i},${j}" value="${esc(M.corr[i][j].toFixed(2))}"></td>`;
+    }
+    rows+=`<tr>${cells}</tr>`;
+  }
+  return `<div class="scroll-x"><table class="tbl corr"><thead><tr><th></th>${names.map(x=>`<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 function renderForm(){
+  const prevOpen=Array.from($("form").querySelectorAll(".sec")).map(d=>d.open);
   const p=PERSONAS[cur];let h="";
   h+=`<div class="form-head"><h2>Your numbers</h2><button type="button" class="link" id="reset">Reset to example</button></div>
   <p class="note" style="margin:4px 0 12px">Example figures. Type your own; they are kept in this browser only. Amounts are per year, after tax, in today's euros.</p>`;
@@ -837,7 +920,8 @@ function renderForm(){
     .concat(s.kind==="royalty"?[fNum(`income.${i}.growth`,"change % / yr",{min:-30,max:30,step:.5}),fNum(`income.${i}.vol`,"swings %",{min:0,max:80,step:1})]:s.kind==="work"?[fNum(`income.${i}.growth`,"raise % / yr",{min:-10,max:10,step:.5})]:[]))).join(""));
   h+=sec("Spending",M.spending.map((s,i)=>item(s.label,[fNum(`spending.${i}.amount`,"€ per year",{min:0,step:500}),fAge(`spending.${i}.from`,"from age","a"),fAge(`spending.${i}.to`,"until age","a")],
     `<span class="hint">≈ <span class="mo" data-mo="spending.${i}.amount"></span> a month</span>`)).join(""));
-  h+=sec("Savings and investments",M.buckets.map((b,i)=>item(b.label,[fNum(`buckets.${i}.amount`,"€ now",{min:0,step:1000}),fSel(`buckets.${i}.cls`,"invested in",CLASS_OPTS)]
+  const classOpts=M.classes.map(c=>[c.key,c.name]);
+  h+=sec("Savings and investments",M.buckets.map((b,i)=>item(b.label,[fNum(`buckets.${i}.amount`,"€ now",{min:0,step:1000}),fSel(`buckets.${i}.cls`,"invested in",classOpts)]
     .concat(b.locked!=null?[fAge(`buckets.${i}.locked`,"locked until age","a"),fNum(`buckets.${i}.you`,"you add / yr",{min:0,step:500}),fNum(`buckets.${i}.employer`,"employer adds / yr",{min:0,step:500})]:[]))).join(""));
   h+=sec("Homes and property",M.property.map((q,i)=>item(q.label,[fNum(`property.${i}.value`,"value €",{min:0,step:5000}),fNum(`property.${i}.rent`,"rent after costs / yr",{min:0,step:500})]
     .concat((+q.mortgage>0)?[fNum(`property.${i}.mortgage`,"mortgage € / yr",{min:0,step:100}),fNum(`property.${i}.mortgageEnd`,"paid off at age",{min:0,max:110})]:[])
@@ -847,22 +931,66 @@ function renderForm(){
     item("New cheques",[fNum("angel.perYear","cheques / yr",{min:0,max:60,step:1}),fNum("angel.ticket","€ each",{min:0,step:1000}),fNum("angel.years","for years",{min:0,max:40,step:1})])+
     item("Outcome profile",[fSel("angel.profile","how cheques turn out",Object.entries(ANGEL_PROFILES).map(([k,v])=>[k,v.name]))]));
   h+=sec("Markets, inflation and fees",item("Economy",[fNum("inflation","inflation %",{min:0,max:15,step:.1}),fNum("drag","fees + taxes on returns %",{min:0,max:5,step:.1})])+
-    `<div class="scroll-x"><table class="tbl"><thead><tr><th>Investment</th><th>Avg return %</th><th>Swings % (1σ)</th></tr></thead><tbody>${CK.map(k=>`<tr><td>${esc(CLASSES[k].name)}</td><td><input type="number" step="0.1" min="-5" max="25" id="${idOf("market."+k+".mu")}" data-path="market.${k}.mu" value="${esc(M.market[k].mu)}"></td><td><input type="number" step="0.5" min="0" max="60" id="${idOf("market."+k+".sd")}" data-path="market.${k}.sd" value="${esc(M.market[k].sd)}"></td></tr>`).join("")}</tbody></table></div>
-    <p class="hint">Yearly averages in euros before inflation. Global stocks at 8% with 17% swings grow about 6.7% a year in a typical stretch.</p>`,false);
-  $("form").innerHTML=h;updateHints();
+    `<div class="scroll-x"><table class="tbl"><thead><tr><th>Investment</th><th>Avg return %</th><th>Swings % (1σ)</th><th></th></tr></thead><tbody>${classKeys(M).map(k=>{
+      const canRemove=k!=="prop"&&M.classes.length>1;
+      return `<tr><td><span class="swatch" style="background:${colorOf(M,k)}"></span>${esc(nameOf(M,k))}</td><td><input type="number" step="0.1" min="-5" max="25" id="${idOf("market."+k+".mu")}" data-path="market.${k}.mu" value="${esc(M.market[k].mu)}"></td><td><input type="number" step="0.5" min="0" max="60" id="${idOf("market."+k+".sd")}" data-path="market.${k}.sd" value="${esc(M.market[k].sd)}"></td><td>${canRemove?`<button type="button" class="link" data-rm-class="${esc(k)}">Remove</button>`:""}</td></tr>`;
+    }).join("")}</tbody></table></div>
+    <p class="hint">Yearly averages in euros before inflation. Global stocks at 8% with 17% swings grow about 6.7% a year in a typical stretch.</p>
+    <p>${M.classes.length<10?`<button type="button" class="link" data-add-class>+ Add an asset class</button>`:`<span class="hint">Up to 10 asset classes.</span>`}</p>
+    <h4 style="margin:16px 0 4px">How these move together (correlation)</h4>
+    <p class="hint">1.00 = always move together, 0 = unrelated, −1 = always opposite. A new class starts at 0.2 against everything — edit it to match what it actually tracks.</p>
+    ${corrGrid()}`,false);
+  $("form").innerHTML=h;
+  $("form").querySelectorAll(".sec").forEach((d,i)=>{if(prevOpen[i]!=null)d.open=prevOpen[i];});
+  updateHints();
 }
 function updateHints(){document.querySelectorAll("[data-mo]").forEach(el=>{el.textContent=eurFull((+getP(el.dataset.mo)||0)/12);});
   document.querySelectorAll("[data-retchip]").forEach(el=>{el.textContent=`stop work · ${M.retireAge}`;});}
-function onField(e){const el=e.target,path=el.dataset&&el.dataset.path;if(!path)return;
+function onField(e){const el=e.target;
+  if(el.dataset&&el.dataset.corr){const [i,j]=el.dataset.corr.split(",").map(Number);let v=parseFloat(el.value);if(!isFinite(v))return;v=Math.min(1,Math.max(-1,v));el.classList.toggle("invalid",false);M.corr[i][j]=v;M.corr[j][i]=v;save();schedule();return;}
+  const path=el.dataset&&el.dataset.path;if(!path)return;
   if(el.tagName==="SELECT")setP(path,el.value);
   else{if(el.value===""){if(el.dataset.blank){setP(path,null);el.classList.remove("invalid");}else return;}
     else{const v=parseFloat(el.value);if(!isFinite(v))return;const lo=el.min!==""?+el.min:-Infinity,hi=el.max!==""?+el.max:Infinity,c=Math.min(hi,Math.max(lo,v));el.classList.toggle("invalid",c!==v);setP(path,c);}}
   updateHints();save();schedule();}
 $("form").addEventListener("input",onField);
 $("form").addEventListener("change",e=>{const el=e.target;if(el.tagName==="INPUT"&&el.dataset.path){const v=getP(el.dataset.path);el.value=v==null?"":v;el.classList.remove("invalid");}});
+// A new class's key is derived from its name (lowercased, letters/digits only) and made
+// unique against every key already in use, including "prop" which is always reserved.
+function addClass(){
+  if(M.classes.length>=10)return;
+  const raw=prompt("Name of the new asset class (e.g. “Crypto”, “Private equity”):");
+  if(raw==null)return;
+  const name=raw.trim().slice(0,40);if(!name)return;
+  let base=name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,16)||"asset";
+  if(/^[0-9]/.test(base))base="a"+base;
+  const used=new Set(M.classes.map(c=>c.key).concat(["prop"]));
+  let key=base,i=1;while(used.has(key))key=base+(++i);
+  const L=M.classes.length;
+  M.classes.push({key,name,color:EXTRA_PALETTE[L%EXTRA_PALETTE.length]});
+  M.market[key]={mu:4,sd:15};
+  for(const row of M.corr)row.splice(L,0,0.2);
+  const newRow=M.corr[0].map(()=>0.2);newRow[L]=1;
+  M.corr.splice(L,0,newRow);
+  save();renderForm();schedule();
+}
+function removeClass(key){
+  if(key==="prop"||M.classes.length<=1)return;
+  const idx=M.classes.findIndex(c=>c.key===key);if(idx<0)return;
+  M.classes.splice(idx,1);
+  delete M.market[key];
+  M.corr.splice(idx,1);
+  for(const row of M.corr)row.splice(idx,1);
+  const fallback=M.classes[0].key;
+  for(const b of M.buckets)if(b.cls===key)b.cls=fallback;
+  save();renderForm();schedule();
+}
 $("form").addEventListener("click",e=>{const tb=e.target.closest("[data-tier]");
   if(tb){M=example(cur,tb.dataset.tier);save();renderForm();schedule(0);return;}
-  if(e.target.id==="reset"){forget();M=example(cur,M.tier);renderForm();schedule(0);}});
+  if(e.target.id==="reset"){forget();M=example(cur,M.tier);renderForm();schedule(0);return;}
+  if(e.target.closest("[data-add-class]")){addClass();return;}
+  const rm=e.target.closest("[data-rm-class]");
+  if(rm){removeClass(rm.dataset.rmClass);return;}});
 
 // ===== Header, story, tabs =====
 function renderHeader(){const p=PERSONAS[cur];
@@ -884,14 +1012,15 @@ document.querySelectorAll("#units button").forEach(b=>b.addEventListener("click"
 let timer;function schedule(ms=140){clearTimeout(timer);timer=setTimeout(compute,ms);}
 function compute(){
   const P=2000,PB=1000,t0=performance.now();
-  const plan=resolve(M),draws=makeDraws(plan,P,M.market),ang=angelPlan(M,plan,P);
+  const CHOL=chol(M.corr);
+  const plan=resolve(M),draws=makeDraws(plan,P,M.market,plan.classKeys,CHOL),ang=angelPlan(M,plan,P);
   const main=project(plan,draws,ang,{P,record:true});
   const base1=project(plan,draws,ang,{P:PB}).success;
   const sus=sustainable(plan,draws,ang,PB,.9);
   const lev=[];
   for(const id of PERSONAS[cur].levers){const L=LEVERS[id];if(!L||(L.when&&!L.when(M)))continue;
     const m2=clone(M),o=L.apply(m2)||{},p2=resolve(m2);
-    const d2=p2.H===plan.H&&p2.roy.length===plan.roy.length?draws:makeDraws(p2,PB,m2.market);
+    const d2=p2.H===plan.H&&p2.roy.length===plan.roy.length&&p2.classKeys.length===plan.classKeys.length?draws:makeDraws(p2,PB,m2.market,p2.classKeys,chol(m2.corr));
     const a2=o.angel?angelPlan(m2,p2,PB):ang;
     lev.push({label:typeof L.label==="function"?L.label(M):L.label,delta:project(p2,d2,a2,{P:PB,muShift:o.muShift||0}).success-base1});}
   const dep=Float64Array.from(main.dep).sort(),H1=plan.H+1;
@@ -973,16 +1102,18 @@ function renderTimeline(){
 }
 function renderMix(){
   const segs=[];const a0=R.plan.a0;
-  for(const b of M.buckets){const locked=b.locked!=null&&ageVal(b.locked,M)>a0;segs.push({label:b.label,v:+b.amount||0,col:`var(--c-${b.cls})`,tags:[locked?"locked":"usable",b.cls==="lcy"?"non-euro":"€"],locked});}
+  for(const b of M.buckets){const locked=b.locked!=null&&ageVal(b.locked,M)>a0;segs.push({label:b.label,v:+b.amount||0,col:colorOf(M,b.cls),tags:[locked?"locked":"usable",b.cls==="lcy"?"non-euro":"€"],locked});}
   for(const q of M.property)segs.push({label:q.label,v:+q.value||0,col:q.home?"var(--c-home)":"var(--c-prop)",tags:[q.home?"home":"rented","property"]});
   if(M.angel)segs.push({label:"Start-up stakes (at cost)",v:+M.angel.existing||0,col:"var(--c-angel)",tags:["locked up","start-ups"]});
   const tot=segs.reduce((s,x)=>s+x.v,0)||1;
   $("mixTotal").textContent=eur(tot)+" in all";
   $("mixbar").innerHTML=segs.filter(x=>x.v>0).map(x=>`<span class="${x.locked?"locked":""}" style="width:${(x.v/tot*100).toFixed(2)}%;background-color:${x.col}" title="${esc(x.label)}"></span>`).join("");
   $("mixlist").innerHTML=segs.filter(x=>x.v>0).map(x=>`<li><i style="background:${x.col}"></i><span>${esc(x.label)} ${x.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</span><b>${eur(x.v)}</b></li>`).join("");
-  const w=R.plan.w;let mu=0,v=0;const sd=CK.map(k=>M.market[k].sd/100);
-  CK.forEach((k,i)=>{mu+=w[i]*M.market[k].mu/100;CK.forEach((k2,j)=>{v+=w[i]*w[j]*sd[i]*sd[j]*CORR[i][j];});});
-  const stocks=(w[3]+w[4])*100;
+  const w=R.plan.w,CKm=classKeys(M),lc=R.plan.liquidCount,sd=CKm.map(k=>M.market[k].sd/100);
+  let mu=0,v=0;
+  for(let i=0;i<lc;i++){mu+=w[i]*M.market[CKm[i]].mu/100;for(let j=0;j<lc;j++)v+=w[i]*w[j]*sd[i]*sd[j]*M.corr[i][j];}
+  const wi=CKm.indexOf("world"),li=CKm.indexOf("local");
+  const stocks=((wi>=0&&wi<lc?w[wi]:0)+(li>=0&&li<lc?w[li]:0))*100;
   $("mixNote").textContent=`Usable savings: ${Math.round(stocks)}% in stocks. Expected about ${(mu*100-(+M.drag||0)).toFixed(1)}% a year after fees, with swings of about ±${(Math.sqrt(v)*100).toFixed(0)}% in a typical year. Inflation is ${(+M.inflation).toFixed(1)}%.`;
 }
 function setup(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};}
@@ -1102,11 +1233,11 @@ function planText(){
   L.push("Spending:");
   for(const s of M.spending)if(+s.amount>0)L.push(`- ${s.label}: ${eurFull(s.amount)} from age ${ag(s.from)}, ${upto(s.to)}`);
   L.push("Savings and investments:");
-  for(const b of M.buckets)if(+b.amount>0)L.push(`- ${b.label}: ${eurFull(b.amount)} in ${CLASSES[b.cls].name.toLowerCase()}`+
+  for(const b of M.buckets)if(+b.amount>0)L.push(`- ${b.label}: ${eurFull(b.amount)} in ${nameOf(M,b.cls).toLowerCase()}`+
     (b.locked!=null?`, locked until ${ag(b.locked)}${+b.you?`; I add ${eurFull(b.you)} a year`:""}${+b.employer?`; employer adds ${eurFull(b.employer)} a year`:""}`:""));
   if(M.property.length){L.push("Property:");for(const q of M.property)L.push(`- ${q.label}: worth ${eurFull(q.value)}${+q.rent?`, rent after costs ${eurFull(q.rent)} a year`:""}${+q.mortgage?`, mortgage ${eurFull(q.mortgage)} a year (fixed) until age ${q.mortgageEnd}`:""}${q.sellAt!=null?`, to be sold at ${q.sellAt}`:""}`);}
   if(M.angel)L.push(`Angel investing: ${eurFull(M.angel.existing)} already in ${M.angel.count} start-ups; ${M.angel.perYear} new cheques a year of ${eurFull(M.angel.ticket)} for ${M.angel.years} years.`);
-  L.push(`Assumptions: inflation ${M.inflation}% a year; fees and taxes on returns ${M.drag}% a year. Average yearly returns before inflation: ${LIQUID_CLASSES.map(k=>`${CLASSES[k].name.toLowerCase()} ${M.market[k].mu}% (swings ${M.market[k].sd}%)`).join("; ")}.`);
+  L.push(`Assumptions: inflation ${M.inflation}% a year; fees and taxes on returns ${M.drag}% a year. Average yearly returns before inflation: ${M.classes.map(c=>`${c.name.toLowerCase()} ${M.market[c.key].mu}% (swings ${M.market[c.key].sd}%)`).join("; ")}.`);
   L.push("",`Results from ${r.P.toLocaleString("en-GB")} simulated futures:`);
   L.push(`- Chance my savings last ${untilMe()}: ${pct(r.main.success)}`);
   L.push(`- Typical savings at ${kv.mAge}: ${eur(kv.mid)} (1 in 10 futures below ${eur(kv.lo)}, 1 in 10 above ${eur(kv.hi)})`);
