@@ -50,6 +50,11 @@ p{margin:0}
 .lede{color:var(--muted);font-size:16.5px;max-width:62ch;margin-top:8px}
 .note{color:var(--muted);font-size:13px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.links-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.link-card{display:block;text-decoration:none;color:inherit;transition:border-color .15s}
+.link-card:hover{border-color:var(--route)}
+.link-card h2{font-size:18px;margin:0 0 6px}
+.link-card p{color:var(--muted);font-size:14px;margin:0}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--route);outline-offset:2px}
 

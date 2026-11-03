@@ -10,7 +10,7 @@ It comes with four example households built from reasonable assumptions. Anyone 
 
 | File | Opens on |
 |---|---|
-| `all.html` | All households, with tabs |
+| `all.html` | Static landing page: a short description plus links to the four households below |
 | `homes.html` | A single high earner, a partner who runs the household, a main home with a mortgage and a paid-off second home (legacy — built but not published) |
 | `artist.html` | A household living mainly on royalties from creative work, about €1M saved, a paid-off home |
 | `angels.html` | A tech angel writing small start-up cheques, with example sizes of €1M, €5M and €30M |
@@ -51,7 +51,8 @@ Every page also teaches the method:
 
 ## Editing
 
-The source is `src/retirement-map.html`. After changing it, regenerate the four pages:
+The source is `src/retirement-map.html`. After changing it, regenerate the household pages (and the
+`all.html` landing page, which reuses the same `<title>`/`<style>` for a matching look):
 
 ```sh
 node build.mjs
